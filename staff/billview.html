@@ -1,33 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Staff Billing</title>
+    <title>Bill History</title>
     <link rel="stylesheet" href="/billing/global.css">
 </head>
 <body>
     <nav>
         <a href="/billing/">Home</a>
-        <a href="/billing/staff/bill">Bill</a>
-        <a href="/billing/staff/billview">Bill View</a>
+        <a href="/billing/staff/">Billing</a>
+        <a href="/billing/staff/billview.html" class="active">Bill History</a>
     </nav>
-    <h1>Staff Billing</h1>
-    <form id="billProductForm">
-        <input type="text" name="productId" placeholder="Product ID" required>
-        <input type="number" name="quantity" placeholder="Quantity" required>
-        <button type="submit">Bill Product</button>
-    </form>
+    <h1>Bill History</h1>
+    <section class="glass">
+        <input type="text" id="billSearch" placeholder="Search by Product Name..." style="margin-bottom:1.5rem;">
+        <div id="billList" class="card-list"></div>
+    </section>
+    <div id="billModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;align-items:center;justify-content:center;">
+        <div class="glass" style="max-width:400px;margin:auto;position:relative;">
+            <button onclick="closeModal()" style="position:absolute;top:1rem;right:1rem;background:#ef4444;">Close</button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
     <script>
-        document.getElementById('billProductForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            formData.append('action', 'billProduct');
-            const response = await fetch('server.php', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            alert(result.message);
+        let bills = [];
+        let products = [];
+
+        // Fetch products for name lookup
+        async function fetchProducts() {
+            const res = await fetch('/billing/server.php?action=getProducts');
+            products = await res.json();
+        }
+
+        // Fetch bills
+        async function fetchBills() {
+            const res = await fetch('/billing/server.php?action=getBills');
+            bills = await res.json();
+            renderBills();
+        }
+
+        // Get product name by id
+        function getProductName(id) {
+            const p = products.find(prod => prod._id.$oid === id);
+            return p ? p.name : id;
+        }
+
+        // Render bills as cards
+        function renderBills(filter = '') {
+            const list = document.getElementById('billList');
+            let filtered = bills;
+            if (filter) {
+                filtered = bills.filter(bill => getProductName(bill.productId.$oid || bill.productId).toLowerCase().includes(filter.toLowerCase()));
+            }
+            list.innerHTML = filtered.map(bill => `
+                <div class="card">
+                    <div class="card-title">${getProductName(bill.productId.$oid || bill.productId)}</div>
+                    <div class="card-meta">Quantity: ${bill.quantity}</div>
+                    <div class="card-meta">Total: ₹${bill.total.toFixed(2)}</div>
+                    <div class="card-meta">Date: ${new Date(bill.date.$date).toLocaleString()}</div>
+                    <div class="card-actions">
+                        <button onclick="expandBill('${bill._id.$oid || bill._id}')">View Details</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Expand bill modal
+        window.expandBill = function(billId) {
+            const bill = bills.find(b => (b._id.$oid || b._id) === billId);
+            if (!bill) return;
+            const productName = getProductName(bill.productId.$oid || bill.productId);
+            document.getElementById('modalContent').innerHTML = `
+                <h2>Bill Details</h2>
+                <p><b>Product:</b> ${productName}</p>
+                <p><b>Quantity:</b> ${bill.quantity}</p>
+                <p><b>Total:</b> ₹${bill.total.toFixed(2)}</p>
+                <p><b>Date:</b> ${new Date(bill.date.$date).toLocaleString()}</p>
+                <p><b>Bill ID:</b> ${(bill._id.$oid || bill._id)}</p>
+            `;
+            document.getElementById('billModal').style.display = 'flex';
+        };
+
+        window.closeModal = function() {
+            document.getElementById('billModal').style.display = 'none';
+        };
+
+        // Search filter
+        document.getElementById('billSearch').addEventListener('input', function() {
+            renderBills(this.value.trim());
         });
+
+        // On page load
+        fetchProducts().then(fetchBills);
     </script>
 </body>
 </html>

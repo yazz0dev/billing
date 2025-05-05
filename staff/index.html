@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Supermarket Billing</title>
+    <link rel="stylesheet" href="/billing/global.css">
+</head>
+<body>
+    <nav>
+        <a href="/billing/">Home</a>
+        <a href="/billing/staff/bill" class="active">Billing</a>
+        <a href="/billing/staff/billview.html">Bill History</a>
+    </nav>
+    <h1>Supermarket Billing</h1>
+    <section class="glass">
+        <h2>Add Products to Cart</h2>
+        <form id="addToCartForm" autocomplete="off">
+            <input type="text" id="productSearch" placeholder="Search product by name..." required list="productListDatalist">
+            <datalist id="productListDatalist"></datalist>
+            <input type="number" id="quantityInput" placeholder="Quantity" min="1" value="1" required>
+            <button type="submit">Add to Cart</button>
+        </form>
+    </section>
+    <section class="glass">
+        <h2>Cart</h2>
+        <div id="cartContainer">
+            <table id="cartTable">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Unit Price</th>
+                        <th>Quantity</th>
+                        <th>Subtotal</th>
+                        <th>Remove</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Cart items will be rendered here -->
+                </tbody>
+            </table>
+            <div style="text-align:right; margin-top:1rem;">
+                <span style="font-size:1.2rem;font-weight:600;">Total: ₹<span id="cartTotal">0.00</span></span>
+            </div>
+            <div style="text-align:right; margin-top:1.5rem;">
+                <button id="checkoutBtn" class="btn" disabled>Checkout & Print Bill</button>
+            </div>
+        </div>
+    </section>
+    <script>
+        // --- Product search and cart logic ---
+        let products = [];
+        let cart = [];
+
+        // Fetch products for autocomplete
+        async function fetchProducts() {
+            const res = await fetch('/billing/server.php?action=getProducts');
+            products = await res.json();
+            const datalist = document.getElementById('productListDatalist');
+            datalist.innerHTML = products.map(p =>
+                `<option value="${p.name}" data-id="${p._id.$oid}" data-price="${p.price}" data-stock="${p.stock}"></option>`
+            ).join('');
+        }
+
+        // Find product by name
+        function findProductByName(name) {
+            return products.find(p => p.name.toLowerCase() === name.toLowerCase());
+        }
+
+        // Add to cart
+        document.getElementById('addToCartForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('productSearch').value.trim();
+            const qty = parseInt(document.getElementById('quantityInput').value, 10);
+            const product = findProductByName(name);
+            if (!product) {
+                alert('Product not found!');
+                return;
+            }
+            if (qty < 1 || qty > product.stock) {
+                alert('Invalid quantity. Available stock: ' + product.stock);
+                return;
+            }
+            // Check if already in cart
+            const existing = cart.find(item => item._id.$oid === product._id.$oid);
+            if (existing) {
+                if (existing.quantity + qty > product.stock) {
+                    alert('Exceeds available stock!');
+                    return;
+                }
+                existing.quantity += qty;
+            } else {
+                cart.push({
+                    _id: product._id,
+                    name: product.name,
+                    price: product.price,
+                    stock: product.stock,
+                    quantity: qty
+                });
+            }
+            renderCart();
+            this.reset();
+        });
+
+        // Render cart table
+        function renderCart() {
+            const tbody = document.querySelector('#cartTable tbody');
+            tbody.innerHTML = '';
+            let total = 0;
+            cart.forEach((item, idx) => {
+                const subtotal = item.price * item.quantity;
+                total += subtotal;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>₹${item.price.toFixed(2)}</td>
+                    <td>${item.quantity}</td>
+                    <td>₹${subtotal.toFixed(2)}</td>
+                    <td><button onclick="removeFromCart(${idx})" style="background:#ef4444;">Remove</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('cartTotal').innerText = total.toFixed(2);
+            document.getElementById('checkoutBtn').disabled = cart.length === 0;
+        }
+
+        // Remove from cart
+        window.removeFromCart = function(idx) {
+            cart.splice(idx, 1);
+            renderCart();
+        };
+
+        // Checkout and bill all items
+        document.getElementById('checkoutBtn').addEventListener('click', async function() {
+            if (!cart.length) return;
+            let errors = [];
+            for (const item of cart) {
+                const formData = new FormData();
+                formData.append('action', 'billProduct');
+                formData.append('productId', item._id.$oid);
+                formData.append('quantity', item.quantity);
+                const res = await fetch('/billing/server.php', { method: 'POST', body: formData });
+                const result = await res.json();
+                if (result.status !== 'success') {
+                    errors.push(`${item.name}: ${result.message}`);
+                }
+            }
+            if (errors.length) {
+                alert('Some items could not be billed:\n' + errors.join('\n'));
+            } else {
+                alert('Billing successful!');
+                window.print(); // Print the bill
+            }
+            cart = [];
+            renderCart();
+            fetchProducts(); // Refresh stock
+        });
+
+        // On page load
+        fetchProducts();
+        renderCart();
+    </script>
+</body>
+</html>
