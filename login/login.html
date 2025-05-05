@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="/billing/global.css">
 </head>
 <body>
+    <a href="/billing/">Home</a>
     <h1>Login</h1>
     <form id="loginForm">
         <input type="text" name="username" placeholder="Username" required>
@@ -20,9 +21,9 @@
             e.preventDefault();
             const role = e.target.role.value;
             if (role === 'admin') {
-                window.location.href = '/billing/admin/dashboard.html';
+                window.location.href = '/billing/admin/dashboard';
             } else if (role === 'staff') {
-                window.location.href = '/billing/staff/billview.html';
+                window.location.href = '/billing/staff/billview';
             }
         });
     </script>

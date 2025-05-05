@@ -66,11 +66,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $password = $_POST['password'];
 
         $user = $db->users->findOne(['username' => $username]);
-        if ($user && password_verify($password, $user->password)) {
+        // Only check password if it exists in the document
+        if ($user && isset($user->password) && password_verify($password, $user->password)) {
             echo json_encode(['status' => 'success', 'role' => $user->role]);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);
         }
+    }
+}
+
+// Handle GET requests for products and bills
+elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
+    $action = $_GET['action'];
+
+    // Get all products
+    if ($action === 'getProducts') {
+        $products = $db->product->find()->toArray();
+        echo json_encode($products);
+    }
+
+    // Get all bills
+    elseif ($action === 'getBills') {
+        $bills = $db->bill->find()->toArray();
+        echo json_encode($bills);
     }
 }
 ?>

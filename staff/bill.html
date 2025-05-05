@@ -5,6 +5,11 @@
     <link rel="stylesheet" href="/billing/global.css">
 </head>
 <body>
+    <nav>
+        <a href="/billing/">Home</a>
+        <a href="/billing/staff/bill">Bill</a>
+        <a href="/billing/staff/billview">Bill View</a>
+    </nav>
     <h1>Bill Management</h1>
 
     <!-- Form to bill products -->
@@ -35,7 +40,7 @@
                     <p>Quantity: ${bill.quantity}</p>
                     <p>Total: ${bill.total}</p>
                     <p>Date: ${new Date(bill.date.$date).toLocaleString()}</p>
-                    <a href="/billing/staff/billview.html?billId=${bill._id}">Expand View</a>
+                    <a href="/billing/staff/billview?billId=${bill._id}">Expand View</a>
                 </div>
             `).join('');
         }
