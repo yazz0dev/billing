@@ -30,7 +30,7 @@
             e.preventDefault();
             const formData = new FormData(e.target);
             formData.append('action', 'addProduct');
-            const response = await fetch('server.php', {
+            const response = await fetch('/billing/server.php', {
                 method: 'POST',
                 body: formData
             });
