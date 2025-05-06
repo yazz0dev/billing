@@ -1,0 +1,6 @@
+[2025-05-06 12:42:56] Request URI: /billing/index
+[2025-05-06 12:42:56] Normalized relative path: /index
+[2025-05-06 12:42:56] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:42:57] Request URI: /billing/index
+[2025-05-06 12:42:57] Normalized relative path: /index
+[2025-05-06 12:42:57] Matched page route: /index -> C:\server\www\billing/index.html

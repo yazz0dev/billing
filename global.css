@@ -1,4 +1,5 @@
-/* Modern Glassmorphism Design System */
+/*billing/global.css*/
+
 :root {
     --primary: #4f46e5;
     --primary-dark: #4338ca;
@@ -18,11 +19,11 @@
     --warning: #f59e0b;
     --info: #3b82f6;
     --input-bg: rgba(255, 255, 255, 0.8);
-    --input-text: #1e293b; /* New variable for input text color */
+    --input-text: #1e293b;
     --border-radius-sm: 10px;
     --border-radius-md: 16px;
     --border-radius-lg: 24px;
-    
+
     /* Topbar specific variables */
     --topbar-bg: rgba(255, 255, 255, 0.65);
     --topbar-border: rgba(255, 255, 255, 0.4);
@@ -30,25 +31,21 @@
     --dropdown-shadow: rgba(31, 38, 135, 0.12);
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --text: #f1f5f9;
-        --text-light: #cbd5e1;
-        --bg-gradient-1: #0f172a;
-        --bg-gradient-2: #1e293b;
-        --glass-bg: rgba(15, 23, 42, 0.75);
-        --glass-border: rgba(255, 255, 255, 0.1);
-        --glass-shadow: rgba(0, 0, 0, 0.3);
-        --card-shadow: rgba(0, 0, 0, 0.2);
-        --input-bg: rgba(15, 23, 42, 0.8);
-        --input-text: #f1f5f9; /* Updated for dark mode */
-        
-        /* Topbar specific variables for dark mode */
-        --topbar-bg: rgba(15, 23, 42, 0.8);
-        --topbar-border: rgba(255, 255, 255, 0.1);
-        --topbar-shadow: rgba(0, 0, 0, 0.2);
-    }
+body.dark-mode {
+    --text: #f1f5f9;
+    --text-light: #cbd5e1;
+    --bg-gradient-1: #0f172a;
+    --bg-gradient-2: #1e293b;
+    --glass-bg: rgba(15, 23, 42, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: rgba(0, 0, 0, 0.3);
+    --card-shadow: rgba(0, 0, 0, 0.2);
+    --input-bg: rgba(15, 23, 42, 0.8);
+    --input-text: #f1f5f9;
+
+    --topbar-bg: rgba(15, 23, 42, 0.8);
+    --topbar-border: rgba(255, 255, 255, 0.1);
+    --topbar-shadow: rgba(0, 0, 0, 0.2);
 }
 
 * {
@@ -59,20 +56,35 @@
 
 body {
     font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+    display: flex;
+    flex-direction: column;
     min-height: 100vh;
     background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 100%);
     color: var(--text);
     line-height: 1.7;
-    padding: 0 0 60px 0;
     overflow-x: hidden;
 }
 
-/* Modern Container Layout */
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.main-content-area {
+    flex: 1;
+    padding: 1.5rem 2rem;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Common container for centered content */
 .container {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 2rem 20px; /* Increased top/bottom padding */
 }
 
 /* Improved Glassmorphism */
@@ -97,12 +109,17 @@ body {
     right: 0;
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--white), transparent);
+    opacity: 0.5; /* Softer line */
     z-index: 1;
+}
+
+body.dark-mode .glass::before {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
 }
 
 .glass:hover {
     box-shadow: 0 12px 42px 0 rgba(31, 38, 135, 0.18);
-    transform: translateY(-5px);
+    transform: translateY(-3px);
 }
 
 /* Typography */
@@ -111,8 +128,8 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
 }
 
-h1 {
-    font-size: 2.5rem;
+.page-title { /* For main H1 on pages */
+    font-size: 2.25rem; /* Slightly reduced */
     margin-bottom: 2rem;
     text-align: center;
     letter-spacing: -0.5px;
@@ -121,23 +138,24 @@ h1 {
     -webkit-background-clip: text;
     color: transparent;
     position: relative;
-    display: inline-block;
+    display: inline-block; /* Allows centering with transform */
     left: 50%;
     transform: translateX(-50%);
     padding-bottom: 10px;
 }
 
-h1::after {
+.page-title::after {
     content: '';
     position: absolute;
     width: 60%;
     height: 3px;
     bottom: 0;
     left: 20%;
-    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    background: linear-gradient(90deg, transparent, var(--primary), var(--secondary), transparent); /* Smoother gradient */
+    opacity: 0.7;
 }
 
-h2 {
+.section-title { /* For H2s */
     font-size: 1.75rem;
     margin-bottom: 1.5rem;
     color: var(--primary-dark);
@@ -145,7 +163,7 @@ h2 {
     padding-bottom: 8px;
 }
 
-h2::after {
+.section-title::after {
     content: '';
     position: absolute;
     width: 40px;
@@ -161,102 +179,48 @@ a {
     text-decoration: none;
     font-weight: 500;
     transition: all 0.2s ease;
-    position: relative;
 }
 
 a:hover {
     color: var(--primary-dark);
+    text-decoration: underline;
 }
 
-a.btn {
+/* Buttons */
+button, .btn {
     display: inline-block;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
+    padding: 0.9rem 1.8rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white !important; /* Ensure text is white */
+    border: none;
     border-radius: var(--border-radius-sm);
     font-weight: 600;
-    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    cursor: pointer;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    text-decoration: none !important; /* Remove underline for buttons */
 }
 
-a.btn:hover {
+button:hover, .btn:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
     transform: translateY(-3px);
     box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3);
-    color: white;
-    text-decoration: none;
 }
 
-/* Enhanced Navigation */
-nav {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.2rem 2rem;
-    margin-bottom: 2rem;
-    background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--glass-border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+button:disabled, .btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    background: var(--text-light);
 }
 
-nav a {
-    padding: 0.6rem 1.2rem;
-    border-radius: var(--border-radius-sm);
-    color: var(--text);
-    font-weight: 600;
-    position: relative;
-    overflow: hidden;
-}
-
-nav a::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary), transparent);
-    opacity: 0.1;
-    transition: width 0.3s ease;
-}
-
-nav a:hover::before {
-    width: 100%;
-}
-
-nav a.active {
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
-}
-
-/* Modern Form Elements */
+/* Forms */
 form {
-    max-width: 500px;
-    margin: 2rem auto;
-    padding: 2.5rem;
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-radius: var(--border-radius-lg);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px 0 var(--glass-shadow);
-    transition: transform 0.3s ease;
+    /* Removed form-specific styling to allow more flexibility. Apply .glass to forms if needed */
+    margin-bottom: 2rem; /* Common spacing */
 }
 
-form:hover {
-    transform: translateY(-5px);
-}
-
-input, select, textarea, button {
-    font-family: inherit;
-}
-
-input[type="text"], 
+input[type="text"],
 input[type="password"],
 input[type="email"],
 input[type="number"],
@@ -267,7 +231,7 @@ textarea {
     margin-bottom: 1.5rem;
     font-size: 1rem;
     background: var(--input-bg);
-    color: var(--input-text); /* Added text color */
+    color: var(--input-text);
     border: 1px solid var(--glass-border);
     border-radius: var(--border-radius-sm);
     backdrop-filter: blur(5px);
@@ -276,78 +240,47 @@ textarea {
     transition: all 0.2s ease;
 }
 
-/* Add specific styling for input placeholders */
 ::placeholder {
     color: var(--text-light);
     opacity: 0.7;
 }
+:-ms-input-placeholder { color: var(--text-light); opacity: 0.7; }
+::-ms-input-placeholder { color: var(--text-light); opacity: 0.7; }
 
-:-ms-input-placeholder {
-    color: var(--text-light);
-    opacity: 0.7;
-}
-
-::-ms-input-placeholder {
-    color: var(--text-light);
-    opacity: 0.7;
-}
-
-/* Add specific styling for focused inputs */
-input:focus, 
-select:focus, 
+input:focus,
+select:focus,
 textarea:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
 }
 
-/* Also apply text color to datalist options */
 option {
-    background: var(--input-bg);
+    background: var(--input-bg); /* Might not work in all browsers */
     color: var(--input-text);
 }
 
-button, .btn {
-    display: inline-block;
-    padding: 0.9rem 1.8rem;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    border: none;
-    border-radius: var(--border-radius-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
-}
-
-button:hover, .btn:hover {
-    background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3);
-}
-
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
+/* Content Sections (general purpose) */
+.content-section {
+    margin-bottom: 2rem;
+    /* background, padding, etc. can be applied with .glass or other classes */
 }
 
 /* Card Components */
-.card {
+.card-base { /* Base styling for cards */
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: var(--border-radius-md);
     border: 1px solid var(--glass-border);
     padding: 1.8rem;
-    margin-bottom: 1.5rem;
     transition: all 0.3s ease;
     box-shadow: 0 4px 20px var(--card-shadow);
     position: relative;
     overflow: hidden;
 }
 
-.card::before {
+.card-base::before { /* Optional top accent */
     content: '';
     position: absolute;
     top: 0;
@@ -357,9 +290,9 @@ button:disabled {
     background: linear-gradient(90deg, var(--primary), var(--secondary));
 }
 
-.card:hover {
+.card-base:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12); /* Slightly more pronounced hover */
 }
 
 .card-title {
@@ -375,6 +308,13 @@ button:disabled {
     margin-bottom: 0.5rem;
 }
 
+.card-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
 .card-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -383,100 +323,55 @@ button:disabled {
 }
 
 /* Table Styles */
-table {
-    width: 100%;
-    border-collapse: collapse;
+.table-wrapper { /* For responsive tables */
+    overflow-x: auto;
     margin: 1.5rem 0;
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: var(--border-radius-md);
-    overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
-table th, 
+table {
+    width: 100%;
+    border-collapse: collapse;
+    /* Removed background/radius from table itself, applying to wrapper */
+}
+
+table th,
 table td {
-    padding: 1.2rem;
+    padding: 1rem 1.2rem; /* Adjusted padding */
     text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid var(--glass-border); /* Use glass border for consistency */
 }
 
 table th {
     background: rgba(79, 70, 229, 0.1);
     font-weight: 600;
     color: var(--primary-dark);
-    position: relative;
-}
-
-table th:first-child {
-    border-top-left-radius: var(--border-radius-sm);
-}
-
-table th:last-child {
-    border-top-right-radius: var(--border-radius-sm);
+    white-space: nowrap; /* Prevent header text wrapping */
 }
 
 table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--primary-rgb, 79, 70, 229), 0.05); /* Use primary color tint for hover */
 }
+body.dark-mode table tbody tr:hover {
+    background: rgba(var(--primary-rgb, 79, 70, 229), 0.15);
+}
+
 
 table tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* Modal */
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    transition: all 0.3s ease;
-}
-
-.modal-content {
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-radius: var(--border-radius-lg);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    padding: 2.5rem;
-    max-width: 500px;
-    width: 100%;
-    margin: 2rem;
-    position: relative;
-    transform: translateY(0);
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.modal-close {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.modal-close:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: rotate(90deg);
+/* App Footer */
+.app-footer {
+    text-align: center;
+    padding: 1.5rem;
+    margin-top: auto; /* Pushes footer to bottom if content is short */
+    font-size: 0.9rem;
+    color: var(--text-light);
 }
 
 /* Utility Classes */
@@ -487,6 +382,7 @@ table tbody tr:last-child td {
 .items-center { align-items: center; }
 .justify-between { justify-content: space-between; }
 .justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
 .gap-1 { gap: 0.5rem; }
 .gap-2 { gap: 1rem; }
 .gap-3 { gap: 1.5rem; }
@@ -505,6 +401,7 @@ table tbody tr:last-child td {
 .p-3 { padding: 1.5rem; }
 .p-4 { padding: 2rem; }
 .p-5 { padding: 2.5rem; }
+.w-full { width: 100%; }
 
 /* Animations */
 @keyframes fadeIn {
@@ -513,72 +410,584 @@ table tbody tr:last-child td {
 }
 
 @keyframes slideUp {
-    from { 
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to { 
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in {
-    animation: fadeIn 0.5s ease forwards;
+.animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+.animate-slide-up { animation: slideUp 0.5s ease forwards; }
+
+/* Styles moved from admin/index.html */
+#salesData {
+    margin-top: 1.5rem;
+    background: var(--input-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-sm);
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: monospace;
+    border: 1px solid var(--glass-border);
 }
 
-.animate-slide-up {
-    animation: slideUp 0.5s ease forwards;
+/* Styles moved from login/index.html */
+.login-page-container { /* Specific to login page */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    padding: 20px;
 }
+
+.login-form-wrapper {
+    width: 100%;
+    max-width: 420px; /* Slightly wider */
+    animation: slideUp 0.5s ease-out;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.login-header h1 { /* Overriding global H1 for login page */
+    font-size: 2rem;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0;
+    display: block; /* Reset from inline-block */
+    left: auto;
+    transform: none;
+}
+.login-header h1::after { display: none; } /* Remove global H1 underline */
+
+.login-header p {
+    color: var(--text-light);
+    font-size: 1rem;
+}
+
+.login-form.glass { /* Apply glass effect to form */
+    position: relative;
+    overflow: visible; /* Allow decorative elements to peek */
+}
+
+/* Decorative elements for login form */
+.login-form.glass::before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(45deg, var(--primary), var(--secondary));
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    opacity: 0.5;
+    z-index: -1;
+    animation: morph 8s ease-in-out infinite;
+}
+
+.login-form.glass::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(45deg, var(--secondary), var(--primary));
+    border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%;
+    opacity: 0.5;
+    z-index: -1;
+    animation: morph 10s ease-in-out infinite reverse;
+}
+
+@keyframes morph {
+    0% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: rotate(0deg); }
+    50% { border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%; transform: rotate(180deg); }
+    100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: rotate(360deg); }
+}
+
+
+.form-group {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.icon-input {
+    position: relative;
+}
+
+.icon-input input {
+    padding-left: 2.8rem;
+}
+
+.input-icon {
+    position: absolute;
+    top: 50%;
+    left: 1rem;
+    transform: translateY(-50%);
+    color: var(--primary);
+    width: 18px;
+    height: 18px;
+}
+
+.login-back-link {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center link */
+    gap: 0.5rem;
+    margin-top: 2rem;
+    font-weight: 500;
+}
+
+.back-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.login-error-message {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1.5rem; /* Increased margin */
+    font-size: 0.9rem;
+    display: none; /* Initially hidden */
+    border: 1px solid var(--error);
+    border-left-width: 4px;
+}
+
+/* Styles moved from product/index.html */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.product-card { /* Uses .card-base */
+    /* Additional product-specific styles if needed */
+    text-align: center;
+}
+.product-card h3 {
+    font-size: 1.15rem;
+    color: var(--text);
+}
+
+/* Styles moved from staff/billview.html */
+.bill-search-input {
+    margin-bottom:1.5rem;
+    max-width: 400px; /* Limit width */
+}
+
+.bill-details-modal-backdrop {
+    display:none; /* Controlled by JS */
+    position:fixed;
+    top:0;left:0;
+    width:100vw;height:100vh;
+    background:rgba(0,0,0,0.35); /* Darker backdrop */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index:1050; /* Higher z-index */
+    align-items:center;
+    justify-content:center;
+    padding: 1rem;
+}
+
+.bill-details-modal-content.glass { /* Apply glass to modal content */
+    max-width:450px; /* Slightly wider */
+    width: 100%;
+    margin:auto;
+    position:relative;
+    animation: slideUp 0.3s ease-out;
+}
+.bill-details-modal-content h2 {
+    font-size: 1.5rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+.bill-details-modal-content p {
+    margin-bottom: 0.75rem;
+    color: var(--text-light);
+}
+.bill-details-modal-content p b {
+    color: var(--text);
+    margin-right: 0.5em;
+}
+.bill-details-modal-close-btn {
+    position:absolute;
+    top:1rem;right:1rem;
+    background:var(--error) !important; /* Ensure error color */
+    color: white !important;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+.bill-details-modal-close-btn:hover {
+    background: var(--secondary-dark) !important;
+}
+
+
+/* Styles moved from index.html (homepage) */
+.homepage-hero-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: fadeIn 0.8s ease-out;
+    padding: 2rem 0; /* Add padding for better spacing */
+}
+
+.homepage-hero-title { /* Overriding global H1 for homepage */
+    font-size: 2.8rem; /* Slightly adjusted */
+    margin-bottom: 1rem; /* Increased spacing */
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    color: var(--primary);
+    padding-bottom: 0;
+    display: block;
+    left: auto;
+    transform: none;
+}
+.homepage-hero-title::after { display: none; }
+
+.homepage-hero-subtitle {
+    color: var(--text-light);
+    font-size: 1.2rem;
+    max-width: 650px; /* Slightly wider */
+    margin-bottom: 3rem;
+    line-height: 1.6;
+}
+
+.homepage-cards-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    justify-content: center; /* Center cards when wrapped */
+}
+
+.homepage-login-card.glass { /* Apply glass to card */
+    width: 320px; /* Slightly wider */
+    padding: 2.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: slideUp 0.6s ease-out;
+    animation-fill-mode: both;
+}
+
+.homepage-login-card:nth-child(2) { animation-delay: 0.15s; } /* Adjusted delay */
+
+.homepage-login-card img {
+    width: 70px; /* Slightly smaller */
+    height: 70px;
+    margin-bottom: 1.5rem;
+    object-fit: contain;
+    color: var(--primary); /* For SVG fill if not set intrinsically */
+}
+
+.homepage-login-card h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-dark);
+    font-size: 1.35rem;
+}
+
+.homepage-login-card p {
+    margin-bottom: 2rem;
+    color: var(--text-light);
+    font-size: 0.95rem;
+    flex-grow: 1; /* Make paragraphs take space to align buttons */
+}
+
+.homepage-login-btn {
+    min-width: 160px; /* Slightly wider */
+    margin-top: auto; /* Push button to bottom of card */
+}
+
+/* Styles for popup-notification.js - Moved from JS file */
+.popup-notification-container {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+    width: 100%;
+    z-index: 9999; /* Ensure it's on top */
+    pointer-events: none; /* Allow clicks through container */
+}
+
+.popup-notification {
+    background: var(--glass-bg, rgba(255, 255, 255, 0.75));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: var(--border-radius-md); /* Consistent radius */
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+    padding: 16px 20px;
+    transition: all 300ms ease; /* Use variable if defined, or direct value */
+    pointer-events: auto; /* Notifications are interactive */
+    opacity: 0;
+    transform: translateY(-20px);
+    max-width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.popup-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.popup-notification.exit {
+    opacity: 0;
+    transform: translateX(100%); /* Exit to the right */
+}
+
+.popup-notification .notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px; /* Slightly thicker */
+    background: linear-gradient(90deg, var(--primary, #4f46e5), var(--secondary, #06b6d4));
+    width: 100%;
+    transform-origin: left;
+    animation-name: popup-progress-animation; /* Prefixed to avoid conflict */
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+.popup-notification .notification-content {
+    display: flex;
+    align-items: flex-start; /* Align items to top */
+    gap: 12px;
+}
+
+.popup-notification .notification-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    margin-top: 2px; /* Align icon with title */
+}
+.popup-notification .notification-icon svg { /* Ensure SVGs scale */
+    width: 100%;
+    height: 100%;
+}
+
+
+.popup-notification .notification-body {
+    flex-grow: 1;
+}
+
+.popup-notification .notification-title {
+    font-weight: 600;
+    font-size: 1rem; /* Standardized size */
+    margin-bottom: 5px;
+    color: var(--text, #1e293b);
+}
+
+.popup-notification .notification-message {
+    font-size: 0.875rem; /* Standardized size */
+    color: var(--text-light, #64748b);
+    word-break: break-word;
+}
+
+.popup-notification .notification-close {
+    position: absolute;
+    top: 10px; /* Adjusted position */
+    right: 10px;
+    width: 24px; /* Slightly larger tap target */
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.08); /* Softer background */
+    border: none; /* Remove border if any */
+    border-radius: 50%;
+    transition: background 0.2s;
+    color: var(--text-light); /* Icon color */
+    font-size: 14px; /* For the '✕' character */
+}
+
+.popup-notification .notification-close:hover {
+    background: rgba(0, 0, 0, 0.15);
+    color: var(--text);
+}
+
+.popup-notification.success { border-left: 4px solid var(--success, #10b981); }
+.popup-notification.error { border-left: 4px solid var(--error, #ef4444); }
+.popup-notification.warning { border-left: 4px solid var(--warning, #f59e0b); }
+.popup-notification.info { border-left: 4px solid var(--info, #3b82f6); } /* Changed from primary to info */
+
+@keyframes popup-progress-animation {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+/* Styles for confirmNotification modal - Moved from JS file */
+.popup-notification-modal-backdrop { /* Renamed from .popup-notification-modal for clarity */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000; /* Very high z-index */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.popup-notification-modal-backdrop.show {
+    opacity: 1;
+}
+
+.popup-notification-modal-content {
+    background: var(--glass-bg, rgba(255, 255, 255, 0.75));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: var(--border-radius-md); /* Consistent radius */
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: calc(100% - 2rem); /* Responsive width with padding */
+    transform: translateY(-20px) scale(0.95); /* Initial state for animation */
+    transition: transform 0.3s ease, opacity 0.3s ease; /* Added opacity transition */
+    opacity: 0; /* Start hidden for transition */
+}
+
+.popup-notification-modal-backdrop.show .popup-notification-modal-content {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.popup-notification-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem; /* Adjusted padding */
+    border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+}
+
+.popup-notification-modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem; /* Standardized size */
+    color: var(--primary); /* Use primary color */
+}
+
+.popup-notification-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-light, #64748b);
+    padding: 0.25rem; /* Add padding for easier click */
+    line-height: 1;
+}
+.popup-notification-modal-close:hover {
+    color: var(--error);
+}
+
+
+.popup-notification-modal-body {
+    padding: 1.5rem; /* Adjusted padding */
+    color: var(--text, #1e293b);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.popup-notification-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 1rem 1.5rem; /* Adjusted padding */
+    border-top: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+}
+
+.popup-notification-modal-btn {
+    padding: 0.6rem 1.2rem; /* Standardized button padding */
+    border-radius: var(--border-radius-sm); /* Consistent radius */
+    font-size: 0.9rem; /* Standardized font size */
+    font-weight: 600; /* Bolder text */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px; /* Ensure buttons have decent width */
+    text-align: center;
+}
+
+.popup-notification-modal-btn-cancel {
+    background: var(--input-bg, rgba(255, 255, 255, 0.8));
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+    color: var(--text, #1e293b);
+}
+.popup-notification-modal-btn-cancel:hover {
+    background: rgba(0,0,0,0.05); /* Subtle hover for cancel */
+}
+body.dark-mode .popup-notification-modal-btn-cancel:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+
+.popup-notification-modal-btn-confirm {
+    background: linear-gradient(135deg, var(--primary, #4f46e5), var(--secondary, #06b6d4));
+    border: none;
+    color: white;
+}
+.popup-notification-modal-btn-confirm:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
+    transform: translateY(-2px); /* Subtle lift */
+}
+
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    h1 {
-        font-size: 2rem;
+    .main-content-area {
+        padding: 1rem 1.5rem;
     }
-    
-    h2 {
-        font-size: 1.5rem;
-    }
-    
-    form, .card, section {
-        padding: 1.5rem;
-    }
-    
-    .card-list {
-        grid-template-columns: 1fr;
-    }
-    
-    nav {
-        flex-wrap: wrap;
-    }
-    
-    nav a {
-        flex: 1;
-        text-align: center;
-        min-width: 100px;
-    }
-    
-    table {
-        display: block;
-        overflow-x: auto;
-    }
+    .page-title { font-size: 1.8rem; }
+    .section-title { font-size: 1.5rem; }
+    form, .card-base, .content-section.glass { padding: 1.5rem; }
+    .card-list { grid-template-columns: 1fr; }
+    .table-wrapper { border-radius: var(--border-radius-sm); } /* Smaller radius on mobile */
 }
 
 @media (max-width: 480px) {
-    h1 {
-        font-size: 1.75rem;
+    .main-content-area {
+        padding: 1rem;
     }
-    
-    h2 {
-        font-size: 1.35rem;
-    }
-    
+    .page-title { font-size: 1.6rem; }
+    .section-title { font-size: 1.35rem; }
     button, .btn {
-        width: 100%;
+        /* width: 100%; Consider if this is always desired */
+        padding: 0.8rem 1.5rem; /* Adjust padding for smaller screens */
+        font-size: 0.9rem;
     }
-    
-    .modal-content {
-        padding: 1.5rem;
-    }
+    .popup-notification-modal-content { padding: 1.5rem 1rem; } /* Adjust padding */
+    .popup-notification-modal-footer { flex-direction: column-reverse; gap: 0.75rem; } /* Stack buttons */
+    .popup-notification-modal-btn { width: 100%; } /* Full width buttons in stacked footer */
+    .homepage-cards-container { gap: 1.5rem; }
+    .homepage-login-card.glass { width: 100%; max-width: 320px; }
 }

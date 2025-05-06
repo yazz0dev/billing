@@ -1,176 +1,155 @@
+//billing/db-check.php
 <?php
 /**
  * MongoDB Connection Check Tool
  * This script verifies the MongoDB connection and provides diagnostic information
+ * It will be wrapped by layout_header.php and layout_footer.php by the router.
  */
 
-// Display errors for troubleshooting
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+// Display errors for troubleshooting if not in production
+// ini_set('display_errors', 1); // Router handles this
+// error_reporting(E_ALL);
+
+$mongoConnectionInfo = null; // Initialize
 
 // Attempt to load composer autoloader
-if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
-    die("Error: Composer autoloader not found. Please run 'composer install' in the project directory.");
-}
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
 
-require_once __DIR__ . '/vendor/autoload.php';
+    if (extension_loaded('mongodb') && class_exists('MongoDB\Client')) {
+        try {
+            $client = new MongoDB\Client("mongodb://localhost:27017", [], ['serverSelectionTimeoutMS' => 3000]); // 3s timeout
+            
+            $serverInfoCmd = new MongoDB\Driver\Command(['serverStatus' => 1]);
+            $serverInfoCursor = $client->getManager()->executeCommand('admin', $serverInfoCmd);
+            $serverInfo = current($serverInfoCursor->toArray());
 
-// Check if MongoDB extension is installed
-if (!extension_loaded('mongodb')) {
-    die("Error: MongoDB PHP extension is not installed. Please install the MongoDB extension for PHP.");
-}
-
-// Function to check MongoDB connection
-function checkMongoDBConnection($uri = "mongodb://localhost:27017") {
-    try {
-        $client = new MongoDB\Client($uri);
-        
-        // Get server info
-        $serverInfo = $client->selectDatabase('admin')->command(['serverStatus' => 1])->toArray()[0];
-        $version = $serverInfo->version;
-        $uptime = $serverInfo->uptime;
-        $connections = $serverInfo->connections->current;
-        
-        // Get database names
-        $databaseNames = [];
-        foreach ($client->listDatabases() as $db) {
-            $databaseNames[] = $db->getName();
+            $version = isset($serverInfo->version) ? $serverInfo->version : 'N/A';
+            $uptime = isset($serverInfo->uptime) ? round($serverInfo->uptime) : 'N/A';
+            $connections = isset($serverInfo->connections->current) ? $serverInfo->connections->current : 'N/A';
+            
+            $databaseNames = [];
+            foreach ($client->listDatabases() as $dbInfo) {
+                $databaseNames[] = $dbInfo->getName();
+            }
+            
+            $billingDbCollections = [];
+            if (in_array('billing', $databaseNames)) {
+                $billingDb = $client->selectDatabase('billing');
+                foreach ($billingDb->listCollections() as $collectionInfo) {
+                    $billingDbCollections[] = $collectionInfo->getName();
+                }
+            }
+            
+            $mongoConnectionInfo = [
+                'status' => 'connected',
+                'version' => $version,
+                'uptimeSeconds' => $uptime,
+                'currentConnections' => $connections,
+                'availableDatabases' => $databaseNames,
+                'billingDatabaseCollections' => $billingDbCollections
+            ];
+        } catch (Exception $e) {
+            $mongoConnectionInfo = [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
         }
-        
-        // Check billing database specifically
-        $billingDb = $client->selectDatabase('billing');
-        $collections = [];
-        foreach ($billingDb->listCollections() as $collection) {
-            $collections[] = $collection->getName();
-        }
-        
-        return [
-            'status' => 'connected',
-            'version' => $version,
-            'uptime' => $uptime,
-            'connections' => $connections,
-            'databases' => $databaseNames,
-            'collections' => $collections
-        ];
-    } catch (Exception $e) {
-        return [
+    } else {
+        $mongoConnectionInfo = [
             'status' => 'error',
-            'message' => $e->getMessage()
+            'message' => 'MongoDB PHP extension is not loaded or MongoDB\Client class not found.'
         ];
     }
-}
-
-// Check connection
-$connection = checkMongoDBConnection();
-
-// Output result based on request type
-if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
-    // API response
-    header('Content-Type: application/json');
-    echo json_encode($connection);
 } else {
-    // HTML response
-    ?>
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>MongoDB Connection Status</title>
-        <link rel="stylesheet" href="/billing/global.css">
-        <style>
-            .status-box {
-                padding: 1.5rem;
-                border-radius: var(--border-radius-md);
-                margin-bottom: 1rem;
-            }
-            .connected {
-                background-color: rgba(16, 185, 129, 0.1);
-                border: 1px solid var(--success);
-            }
-            .error {
-                background-color: rgba(239, 68, 68, 0.1);
-                border: 1px solid var(--error);
-            }
-            .collection-list {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                gap: 1rem;
-            }
-            .collection-item {
-                background: var(--glass-bg);
-                padding: 1rem;
-                border-radius: var(--border-radius-sm);
-                border: 1px solid var(--glass-border);
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>MongoDB Connection Status</h1>
-            
-            <?php if ($connection['status'] === 'connected'): ?>
-                <div class="status-box connected">
-                    <h2>✅ Connection Successful</h2>
-                    <p>MongoDB server is running properly.</p>
-                </div>
-                
-                <div class="glass">
-                    <h2>Server Information</h2>
-                    <ul>
-                        <li><strong>Version:</strong> <?= htmlspecialchars($connection['version']) ?></li>
-                        <li><strong>Uptime:</strong> <?= htmlspecialchars($connection['uptime']) ?> seconds</li>
-                        <li><strong>Current Connections:</strong> <?= htmlspecialchars($connection['connections']) ?></li>
-                    </ul>
-                </div>
-                
-                <div class="glass mt-4">
-                    <h2>Databases</h2>
-                    <ul>
-                        <?php foreach ($connection['databases'] as $db): ?>
-                            <li><?= htmlspecialchars($db) ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-                
-                <div class="glass mt-4">
-                    <h2>Billing Collections</h2>
-                    <?php if (count($connection['collections']) > 0): ?>
-                        <div class="collection-list">
-                            <?php foreach ($connection['collections'] as $collection): ?>
-                                <div class="collection-item">
-                                    <?= htmlspecialchars($collection) ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <p>No collections found in the billing database.</p>
-                    <?php endif; ?>
-                </div>
-            <?php else: ?>
-                <div class="status-box error">
-                    <h2>❌ Connection Failed</h2>
-                    <p>Could not connect to MongoDB: <?= htmlspecialchars($connection['message']) ?></p>
-                </div>
-                
-                <div class="glass mt-4">
-                    <h2>Troubleshooting</h2>
-                    <ul>
-                        <li>Make sure MongoDB service is running</li>
-                        <li>Check if MongoDB is running on the default port (27017)</li>
-                        <li>Verify that the MongoDB PHP extension is properly installed</li>
-                        <li>Check firewall settings if MongoDB is running on a different server</li>
-                        <li>Confirm authentication details if MongoDB requires authentication</li>
-                    </ul>
-                </div>
-            <?php endif; ?>
-            
-            <div class="text-center mt-4">
-                <a href="/billing/" class="btn">Back to Home</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    <?php
+     $mongoConnectionInfo = [
+        'status' => 'error',
+        'message' => "Composer autoloader not found (vendor/autoload.php). Please run 'composer install'."
+    ];
 }
+
+// Output result as JSON if requested by API
+if (isset($_SERVER['HTTP_ACCEPT']) && strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') !== false && php_sapi_name() !== 'cli') {
+    header('Content-Type: application/json');
+    echo json_encode($mongoConnectionInfo);
+    exit; // Important: exit after JSON output if called as API
+}
+
 ?>
+<h1 class="page-title">MongoDB Connection Status</h1>
+
+<?php if ($mongoConnectionInfo && $mongoConnectionInfo['status'] === 'connected'): ?>
+    <div class="content-section glass" style="border-left: 5px solid var(--success);">
+        <h2 class="section-title" style="color: var(--success);">✅ Connection Successful</h2>
+        <p>Your application is successfully connected to the MongoDB server.</p>
+    </div>
+    
+    <div class="content-section glass mt-4">
+        <h2 class="section-title">Server Information</h2>
+        <ul>
+            <li><strong>MongoDB Version:</strong> <?php echo htmlspecialchars($mongoConnectionInfo['version']); ?></li>
+            <li><strong>Server Uptime:</strong> <?php echo htmlspecialchars($mongoConnectionInfo['uptimeSeconds']); ?> seconds</li>
+            <li><strong>Current Connections:</strong> <?php echo htmlspecialchars($mongoConnectionInfo['currentConnections']); ?></li>
+        </ul>
+    </div>
+    
+    <div class="content-section glass mt-4">
+        <h2 class="section-title">Available Databases</h2>
+        <?php if (!empty($mongoConnectionInfo['availableDatabases'])): ?>
+            <ul>
+                <?php foreach ($mongoConnectionInfo['availableDatabases'] as $dbName): ?>
+                    <li><?php echo htmlspecialchars($dbName); ?> <?php echo ($dbName === 'billing' ? '<strong>(App DB)</strong>' : ''); ?></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else: ?>
+            <p>No databases found (this is unusual, check MongoDB server status).</p>
+        <?php endif; ?>
+    </div>
+    
+    <div class="content-section glass mt-4">
+        <h2 class="section-title">Collections in 'billing' Database</h2>
+        <?php if (!empty($mongoConnectionInfo['billingDatabaseCollections'])): ?>
+            <div class="card-list">
+                <?php foreach ($mongoConnectionInfo['billingDatabaseCollections'] as $collectionName): ?>
+                    <div class="card-base p-3"> <!-- Simpler card for list item -->
+                       <span style="font-weight:500;"><?php echo htmlspecialchars($collectionName); ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+             <p class="mt-3 text-sm text-light">Expected collections: users, product, bill, popup_notifications.</p>
+        <?php elseif (in_array('billing', $mongoConnectionInfo['availableDatabases'])): ?>
+            <p>The 'billing' database exists but has no collections. This might be an initial setup.</p>
+        <?php else: ?>
+            <p>The 'billing' database does not seem to exist or is not accessible.</p>
+        <?php endif; ?>
+    </div>
+
+<?php elseif ($mongoConnectionInfo): // Status is 'error' ?>
+    <div class="content-section glass" style="border-left: 5px solid var(--error);">
+        <h2 class="section-title" style="color: var(--error);">❌ Connection Failed</h2>
+        <p><strong>Error Message:</strong> <?php echo htmlspecialchars($mongoConnectionInfo['message']); ?></p>
+    </div>
+    
+    <div class="content-section glass mt-4">
+        <h2 class="section-title">Troubleshooting Tips</h2>
+        <ul>
+            <li>Ensure the MongoDB service (mongod) is running on your server.</li>
+            <li>Verify the connection URI (default: <code>mongodb://localhost:27017</code>) is correct.</li>
+            <li>Check if the MongoDB PHP driver/extension is installed and enabled in your <code>php.ini</code>.</li>
+            <li>If running MongoDB in Docker or a VM, ensure port 27017 is correctly mapped and accessible.</li>
+            <li>Check firewall rules on the server running MongoDB and the web server.</li>
+            <li>If authentication is enabled on MongoDB, ensure your application provides valid credentials (not configured in this basic setup).</li>
+            <li>Review MongoDB server logs for more detailed error information.</li>
+            <li>Make sure <code>composer install</code> has been run in the <code>/billing/</code> directory to install dependencies.</li>
+        </ul>
+    </div>
+<?php else: ?>
+     <div class="content-section glass" style="border-left: 5px solid var(--warning);">
+        <h2 class="section-title" style="color: var(--warning);">⚠️ Could Not Determine Status</h2>
+        <p>There was an issue running the connection check script.</p>
+    </div>
+<?php endif; ?>
+
+<div class="text-center mt-4">
+    <a href="/billing/index" class="btn">Back to Home</a>
+</div>

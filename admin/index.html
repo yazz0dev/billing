@@ -1,72 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Admin Dashboard</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="/billing/global.css">
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        
-        .content-container {
-            flex: 1;
-            padding: 1rem 2rem;
-        }
-        
-        section {
-            margin-bottom: 2rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: var(--border-radius-md);
-            padding: 1.5rem;
-            border: 1px solid var(--glass-border);
-        }
+//billing/admin/index.html 
 
-        #salesData {
-            margin-top: 1.5rem;
-            background: var(--input-bg);
-            padding: 1.5rem;
-            border-radius: var(--border-radius-sm);
-            max-height: 400px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            font-family: monospace;
-        }
-    </style>
-</head>
-<body>
-    <!-- Include the topbar -->
-    <div id="topbarContainer"></div>
-    
-    <div class="content-container">
-        <h1>Admin Dashboard</h1>
-        <section>
-            <h2>Manage Products</h2>
-            <form id="addProductForm">
-                <input type="text" name="name" placeholder="Product Name" required>
-                <input type="number" name="price" placeholder="Price" step="0.01" min="0" required>
-                <input type="number" name="stock" placeholder="Stock" min="0" required>
-                <button type="submit">Add Product</button>
-            </form>
-        </section>
-        <section>
-            <h2>Sales</h2>
-            <button id="viewSales">View Sales</button>
-            <div id="salesData"></div>
-        </section>
+<h1 class="page-title">Admin Dashboard</h1>
+
+<section class="content-section glass">
+    <h2 class="section-title">Manage Products</h2>
+    <form id="addProductForm">
+        <div class="form-group">
+            <label for="productName">Product Name</label>
+            <input type="text" id="productName" name="name" placeholder="Enter product name" required>
+        </div>
+        <div class="form-group">
+            <label for="productPrice">Price (₹)</label>
+            <input type="number" id="productPrice" name="price" placeholder="0.00" step="0.01" min="0" required>
+        </div>
+        <div class="form-group">
+            <label for="productStock">Stock Quantity</label>
+            <input type="number" id="productStock" name="stock" placeholder="0" min="0" required>
+        </div>
+        <button type="submit" class="btn w-full">Add Product</button>
+    </form>
+</section>
+
+<section class="content-section glass">
+    <h2 class="section-title">Sales Data</h2>
+    <button id="viewSales" class="btn">View All Sales</button>
+    <div id="salesData" class="mt-3">
+        <!-- Sales data will be populated here -->
+        <p class="text-center text-light">Click "View All Sales" to load data.</p>
     </div>
-    
-    <!-- Include popup notification script -->
-    <script src="/billing/js/popup-notification.js"></script>
-    
-    <script>
-        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addProductForm = document.getElementById('addProductForm');
+    const viewSalesButton = document.getElementById('viewSales');
+    const salesDataDiv = document.getElementById('salesData');
+
+    if (addProductForm) {
+        addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             formData.append('action', 'addProduct');
@@ -79,61 +50,41 @@
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    window.popupNotification.success(result.message, "Product Added");
-                    e.target.reset(); // Clear form on success
+                    window.popupNotification.success(result.message || "Product added successfully!", "Product Added");
+                    e.target.reset(); // Clear form
                 } else {
-                    window.popupNotification.error(result.message || "Failed to add product", "Error");
+                    window.popupNotification.error(result.message || "Failed to add product. Please try again.", "Error");
                 }
             } catch (error) {
-                window.popupNotification.error("An error occurred while processing your request", "Server Error");
+                console.error("Add product error:", error);
+                window.popupNotification.error("A server error occurred. Please try again later.", "Server Error");
             }
         });
+    }
 
-        document.getElementById('viewSales').addEventListener('click', async () => {
+    if (viewSalesButton) {
+        viewSalesButton.addEventListener('click', async () => {
+            salesDataDiv.innerHTML = '<p class="text-center text-light">Loading sales data...</p>'; // Loading state
             try {
                 const response = await fetch('/billing/server.php?action=getSales');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const sales = await response.json();
                 
-                if (sales.length === 0) {
-                    document.getElementById('salesData').innerText = "No sales data available.";
-                    window.popupNotification.info("No sales records found", "Sales Data");
+                if (sales && sales.length === 0) {
+                    salesDataDiv.innerText = "No sales data available at the moment.";
+                    window.popupNotification.info("No sales records found.", "Sales Data");
+                } else if (sales) {
+                    salesDataDiv.innerText = JSON.stringify(sales, null, 2);
+                    window.popupNotification.success(`Successfully loaded ${sales.length} sales records.`, "Sales Data Loaded");
                 } else {
-                    document.getElementById('salesData').innerText = JSON.stringify(sales, null, 2);
-                    window.popupNotification.success(`Successfully loaded ${sales.length} sales records`, "Sales Data");
+                    throw new Error("Invalid sales data received.");
                 }
             } catch (error) {
-                window.popupNotification.error("Failed to fetch sales data", "Data Error");
+                console.error("Fetch sales error:", error);
+                salesDataDiv.innerText = "Failed to load sales data. Please try again.";
+                window.popupNotification.error("Failed to fetch sales data. Check console for details.", "Data Error");
             }
         });
-    </script>
-    
-    <!-- Script to load the topbar -->
-    <script>
-        // Load the topbar
-        fetch('/billing/ui/topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbarContainer').innerHTML = data;
-                
-                // Set user session data for admin page
-                window.userSessionData = {
-                    name: '<?php echo isset($_SESSION["username"]) ? $_SESSION["username"] : "Administrator"; ?>',
-                    role: '<?php echo isset($_SESSION["user_role"]) ? $_SESSION["user_role"] : "admin"; ?>',
-                    email: 'admin@example.com'
-                };
-                
-                // Execute the topbar script manually
-                const scripts = document.getElementById('topbarContainer').querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    Array.from(script.attributes).forEach(attr => {
-                        newScript.setAttribute(attr.name, attr.value);
-                    });
-                    newScript.textContent = script.textContent;
-                    document.getElementById('topbarContainer').appendChild(newScript);
-                });
-            })
-            .catch(error => console.error('Error loading topbar:', error));
-    </script>
-</body>
-</html>
+    }
+});
+</script>

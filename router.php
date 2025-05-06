@@ -1,186 +1,219 @@
+//billing/router.php
 <?php
 /**
  * Router for Billing System
- * 
- * This router handles all incoming requests and routes them to the appropriate files.
  */
 
-// Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 1); // For development, 0 for production
 
-// Start session for authentication
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Get the request URI and remove query string
-$request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
-// Remove the '/billing' prefix to get the relative path
+// --- Configuration ---
 $base_path = '/billing';
-$relative_path = substr($request_uri, strlen($base_path));
+$log_dir = __DIR__ . '/logs';
+$mongodb_log_file = $log_dir . '/mongodb.log';
+$router_log_file = $log_dir . '/router.log';
 
-// Normalize path: remove trailing slash except for root path
-if ($relative_path !== '/' && substr($relative_path, -1) === '/') {
-    $relative_path = rtrim($relative_path, '/');
-}
-
-// Default to index if the path is just the base
-if ($relative_path === '' || $relative_path === '/') {
-    $relative_path = '/index.html';
-}
-
-// Handle API requests to server.php
-if (strpos($relative_path, '/server.php') === 0) {
-    require_once __DIR__ . '/server.php';
-    exit;
-}
-
-// Handle notification.php requests
-if (strpos($relative_path, '/notification.php') === 0) {
-    require_once __DIR__ . '/notification.php';
-    exit;
-}
-
-// Define routes for HTML pages
-$routes = [
-    '/index.html' => __DIR__ . '/index.html',
-    '/login' => __DIR__ . '/login/index.html',
-    '/login/index.html' => __DIR__ . '/login/index.html',
-    
-    // Admin routes
-    '/admin' => __DIR__ . '/admin/index.html',
-    '/admin/index.html' => __DIR__ . '/admin/index.html',
-    '/admin/dashboard' => __DIR__ . '/admin/dashboard.html',
-    
-    // Staff routes
-    '/staff' => __DIR__ . '/staff/index.html',
-    '/staff/index.html' => __DIR__ . '/staff/index.html',
-    '/staff/bill' => __DIR__ . '/staff/bill.html',
-    '/staff/billview' => __DIR__ . '/staff/billview.html',
-    '/staff/billview.html' => __DIR__ . '/staff/billview.html',
-    
-    // Product routes
-    '/product' => __DIR__ . '/product/index.html',
-    '/product/index.html' => __DIR__ . '/product/index.html',
-];
-
-// Log MongoDB connection status
-function logMongoDBConnection() {
-    $log_file = __DIR__ . '/logs/mongodb.log';
-    $log_dir = dirname($log_file);
-    
-    // Create logs directory if it doesn't exist
+// --- Helper Functions ---
+function route_log($message) {
+    global $router_log_file, $log_dir;
     if (!file_exists($log_dir)) {
         mkdir($log_dir, 0755, true);
     }
-    
-    try {
-        $client = new MongoDB\Client("mongodb://localhost:27017");
-        $databases = iterator_to_array($client->listDatabases());
-        $status = "Connected successfully to MongoDB at " . date('Y-m-d H:i:s');
-        error_log($status . PHP_EOL, 3, $log_file);
-        return true;
-    } catch (Exception $e) {
-        $error = "MongoDB Connection Error: " . $e->getMessage() . " at " . date('Y-m-d H:i:s');
-        error_log($error . PHP_EOL, 3, $log_file);
+    error_log(date('[Y-m-d H:i:s] ') . $message . PHP_EOL, 3, $router_log_file);
+}
+
+function serve_static_file($file_path) {
+    if (!file_exists($file_path) || !is_readable($file_path)) {
+        route_log("Static file not found or not readable: {$file_path}");
         return false;
     }
+
+    $mime_types = [
+        'css' => 'text/css',
+        'js' => 'application/javascript',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'gif' => 'image/gif',
+        'svg' => 'image/svg+xml',
+    ];
+    $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+    $content_type = isset($mime_types[$extension]) ? $mime_types[$extension] : 'application/octet-stream';
+
+    header("Content-Type: {$content_type}");
+    header("Content-Length: " . filesize($file_path));
+    // Consider adding caching headers for static assets in production
+    // header("Cache-Control: max-age=31536000, public"); // Cache for 1 year
+    // header("Expires: " . gmdate('D, d M Y H:i:s', time() + 31536000) . ' GMT');
+    readfile($file_path);
+    return true;
 }
 
-// Non-blocking MongoDB connection check
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    // Only check MongoDB if the Composer autoloader exists
-    require_once __DIR__ . '/vendor/autoload.php';
-    if (class_exists('MongoDB\Client')) {
-        // Run connection check in background or with short timeout
-        set_time_limit(5); // Limit to 5 seconds max
-        @logMongoDBConnection();
-        // Reset time limit to default
-        set_time_limit(30);
+function logMongoDBConnectionStatus() {
+    global $mongodb_log_file, $log_dir;
+    if (!file_exists($log_dir)) {
+        mkdir($log_dir, 0755, true);
     }
+    if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+        require_once __DIR__ . '/vendor/autoload.php';
+        if (class_exists('MongoDB\Client')) {
+            try {
+                // Use a short timeout for the connection attempt
+                $client = new MongoDB\Client("mongodb://localhost:27017", [], ['serverSelectionTimeoutMS' => 2000]);
+                $client->listDatabases(); // Actual command to check connection
+                $status = "Connected successfully to MongoDB.";
+                error_log(date('[Y-m-d H:i:s] ') . $status . PHP_EOL, 3, $mongodb_log_file);
+                return true;
+            } catch (Exception $e) {
+                $error = "MongoDB Connection Error: " . $e->getMessage();
+                error_log(date('[Y-m-d H:i:s] ') . $error . PHP_EOL, 3, $mongodb_log_file);
+                return false;
+            }
+        } else {
+            error_log(date('[Y-m-d H:i:s] ') . "MongoDB\Client class not found." . PHP_EOL, 3, $mongodb_log_file);
+        }
+    } else {
+         error_log(date('[Y-m-d H:i:s] ') . "Composer autoload.php not found." . PHP_EOL, 3, $mongodb_log_file);
+    }
+    return false;
 }
 
-// Debug info - comment out in production
-echo "<!-- Debug: Requested path: {$relative_path} -->\n";
+// Non-blocking MongoDB connection check (log only)
+// This is a simple way; for true non-blocking, consider background processes or message queues.
+// For this app, a quick check with timeout is probably sufficient.
+set_time_limit(5); // Short time limit for this initial check
+@logMongoDBConnectionStatus();
+set_time_limit(30); // Reset to default
 
-// Check if route exists
-if (isset($routes[$relative_path])) {
-    $file_path = $routes[$relative_path];
-    
-    // Debug info - comment out in production
-    echo "<!-- Debug: Mapped to file: {$file_path} -->\n";
-    
-    // Security check for protected routes
-    if (strpos($relative_path, '/admin/') === 0) {
-        // Check if user is logged in as admin
-        if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-            header('Location: /billing/login');
-            exit;
+
+// --- Routing Logic ---
+$request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+route_log("Request URI: {$request_uri}");
+
+// Remove the base path prefix
+$relative_path = $request_uri;
+if (strpos($request_uri, $base_path) === 0) {
+    $relative_path = substr($request_uri, strlen($base_path));
+}
+
+// Normalize path: ensure leading slash, remove trailing slash (except for root)
+if (empty($relative_path) || $relative_path === '/') {
+    $relative_path = '/index'; // Default to homepage (will map to index.html)
+} elseif (substr($relative_path, -1) === '/' && strlen($relative_path) > 1) {
+    $relative_path = rtrim($relative_path, '/');
+}
+if (substr($relative_path, 0, 1) !== '/') {
+    $relative_path = '/' . $relative_path;
+}
+route_log("Normalized relative path: {$relative_path}");
+
+
+// --- API and Special File Routes ---
+if ($relative_path === '/server.php' || strpos($relative_path, '/server.php?') === 0) {
+    route_log("Routing to server.php");
+    require_once __DIR__ . '/server.php';
+    exit;
+}
+if ($relative_path === '/notification.php' || strpos($relative_path, '/notification.php?') === 0) {
+    route_log("Routing to notification.php");
+    require_once __DIR__ . '/notification.php';
+    exit;
+}
+if ($relative_path === '/db-check.php') { // db-check needs layout
+    $pageTitle = "Database Connection Check";
+    include __DIR__ . '/layout_header.php';
+    include __DIR__ . '/db-check.php';
+    include __DIR__ . '/layout_footer.php';
+    exit;
+}
+
+// --- Static Asset Routes (CSS, JS, Images etc.) ---
+// It's generally better to let Apache/Nginx handle static files directly for performance.
+// If using PHP to serve, ensure paths are secure.
+if (preg_match('/^\/global\.css$/', $relative_path)) {
+    if (serve_static_file(__DIR__ . '/global.css')) exit;
+} elseif (preg_match('/^\/js\/(.+)$/', $relative_path, $matches)) {
+    if (serve_static_file(__DIR__ . '/js/' . $matches[1])) exit;
+} elseif (preg_match('/^\/ui\/(.+)$/', $relative_path, $matches)) {
+    // Serve files from /ui like topbar.html if directly requested (though it's included by PHP now)
+    // This might be useful if topbar.html had images or other assets it referenced relatively.
+    // However, it's better to put such assets in a dedicated /assets or /images folder.
+    // For now, this keeps the topbar.html working if its contents are complex.
+    if (serve_static_file(__DIR__ . '/ui/' . $matches[1])) exit;
+}
+
+
+// --- Page Routes ---
+$page_routes = [
+    // Route path       => [File path, Page Title, Role required (null for public)]
+    '/index'            => [__DIR__ . '/index.html', 'Homepage', null],
+    '/login'            => [__DIR__ . '/login/index.html', 'Login', null],
+
+    '/admin'            => [__DIR__ . '/admin/index.html', 'Admin Dashboard', 'admin'],
+    '/admin/dashboard'  => [__DIR__ . '/admin/index.html', 'Admin Dashboard', 'admin'], // Alias or specific file
+
+    '/staff'            => [__DIR__ . '/staff/index.html', 'Staff Billing', ['admin', 'staff']],
+    '/staff/billview'   => [__DIR__ . '/staff/billview.html', 'Bill History', ['admin', 'staff']],
+
+    '/product'          => [__DIR__ . '/product/index.html', 'Product Management', 'admin'], // Typically admin
+    '/logout'           => [__DIR__ . '/logout.php', 'Logout', null], // logout.php will handle redirect
+];
+
+if (isset($page_routes[$relative_path])) {
+    list($file_to_include, $pageTitle, $required_role) = $page_routes[$relative_path];
+    route_log("Matched page route: {$relative_path} -> {$file_to_include}");
+
+    // Role-based access control
+    if ($required_role !== null) {
+        $user_role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : null;
+        $is_allowed = false;
+        if (is_array($required_role)) {
+            if (in_array($user_role, $required_role)) {
+                $is_allowed = true;
+            }
+        } elseif ($user_role === $required_role) {
+            $is_allowed = true;
         }
-    } elseif (strpos($relative_path, '/staff/') === 0) {
-        // Check if user is logged in as staff or admin
-        if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] !== 'staff' && $_SESSION['user_role'] !== 'admin')) {
-            header('Location: /billing/login');
+
+        if (!$is_allowed) {
+            route_log("Access denied for role '{$user_role}' to {$relative_path}. Required: " . (is_array($required_role) ? implode('/', $required_role) : $required_role));
+            $_SESSION['login_redirect_message'] = "You do not have permission to access this page.";
+            header('Location: ' . $base_path . '/login');
             exit;
         }
     }
-    
-    // Check if file exists before trying to serve it
-    if (!file_exists($file_path)) {
-        echo "Error: File not found: {$file_path}";
+
+    if (file_exists($file_to_include)) {
+        if (pathinfo($file_to_include, PATHINFO_EXTENSION) === 'php') {
+            // For .php files like logout.php, include them directly without layout
+            include $file_to_include;
+        } else {
+            // For .html content files, wrap with layout
+            include __DIR__ . '/layout_header.php'; // $pageTitle is used here
+            include $file_to_include;
+            include __DIR__ . '/layout_footer.php';
+        }
         exit;
-    }
-    
-    // Serve the file based on extension
-    $extension = pathinfo($file_path, PATHINFO_EXTENSION);
-    
-    if ($extension === 'html') {
-        header('Content-Type: text/html');
-        include($file_path); // Changed from readfile to include
-    } elseif ($extension === 'php') {
-        include($file_path);
-    } elseif ($extension === 'css') {
-        header('Content-Type: text/css');
-        readfile($file_path);
-    } elseif ($extension === 'js') {
-        header('Content-Type: application/javascript');
-        readfile($file_path);
     } else {
-        // Handle other file types as needed
-        readfile($file_path);
+        route_log("File not found for route {$relative_path}: {$file_to_include}");
     }
-} elseif (strpos($relative_path, '/global.css') !== false) {
-    // Special handling for global CSS
-    $css_path = __DIR__ . '/global.css';
-    
-    // Debug info - comment out in production
-    echo "<!-- Debug: Serving CSS: {$css_path} -->\n";
-    
-    if (file_exists($css_path)) {
-        header('Content-Type: text/css');
-        readfile($css_path);
-    } else {
-        echo "Error: CSS file not found: {$css_path}";
-    }
-} elseif (strpos($relative_path, '/js/') === 0) {
-    // Handle JavaScript files in the js directory
-    $js_path = __DIR__ . $relative_path;
-    
-    // Debug info - comment out in production
-    echo "<!-- Debug: Serving JavaScript: {$js_path} -->\n";
-    
-    if (file_exists($js_path)) {
-        header('Content-Type: application/javascript');
-        readfile($js_path);
-    } else {
-        echo "Error: JavaScript file not found: {$js_path}";
-    }
-} else {
-    // 404 Not Found
-    header("HTTP/1.0 404 Not Found");
-    echo "<h1>404 Not Found</h1>";
-    echo "<p>The requested URL {$request_uri} was not found on this server.</p>";
-    echo "<p>Debug: Relative path '{$relative_path}' has no matching route.</p>";
-    echo "<a href='/billing/'>Go to homepage</a>";
 }
+
+// --- 404 Not Found ---
+route_log("404 Not Found for relative path: {$relative_path}");
+header("HTTP/1.0 404 Not Found");
+$pageTitle = "404 Not Found"; // For the layout
+include __DIR__ . '/layout_header.php';
+echo "<div class='container text-center glass mt-5'>";
+echo "<h1 class='page-title' style='color:var(--error);'>404 Not Found</h1>"; // Override H1 style for error
+echo "<p>The page you requested at <code>" . htmlspecialchars($request_uri) . "</code> could not be found.</p>";
+echo "<p>We apologize for the inconvenience.</p>";
+echo "<a href='{$base_path}/index' class='btn mt-3'>Go to Homepage</a>";
+echo "</div>";
+include __DIR__ . '/layout_footer.php';
+exit;
 ?>

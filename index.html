@@ -1,171 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supermarket Billing System</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="/billing/global.css">
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #e0f2fe 0%, #ede9fe 50%, #f0fdfa 100%);
-            padding: 0;
-        }
-        
-        .content-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex-grow: 1;
-            padding: 2rem 0;
-        }
-        
-        .hero-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            animation: fadeIn 0.8s ease-out;
-        }
-        
-        .hero-title {
-            margin-bottom: 0.5rem;
-            font-size: 3rem;
-        }
-        
-        .hero-subtitle {
-            color: var(--text-light);
-            font-size: 1.25rem;
-            max-width: 600px;
-            margin-bottom: 3rem;
-        }
-        
-        .cards-container {
-            display: flex;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-        
-        .login-card {
-            width: 300px;
-            padding: 2.5rem;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            animation: slideUp 0.6s ease-out;
-            animation-fill-mode: both;
-        }
-        
-        .login-card:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        .login-card:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        
-        .login-card img {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 1.5rem;
-            object-fit: contain;
-        }
-        
-        .login-card h3 {
-            margin-bottom: 1rem;
-            color: var(--primary-dark);
-        }
-        
-        .login-card p {
-            margin-bottom: 2rem;
-            color: var(--text-light);
-        }
-        
-        .login-btn {
-            min-width: 150px;
-        }
-        
-        .footer {
-            margin-top: 4rem;
-            text-align: center;
-            color: var(--text-light);
-        }
-        
-        @media (max-width: 768px) {
-            .cards-container {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .hero-title {
-                font-size: 2.5rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Include the topbar -->
-    <div id="topbarContainer"></div>
+//billing/index.html`** (Homepage)
+<div class="container homepage-hero-container">
+    <h1 class="homepage-hero-title">Supermarket Billing System</h1>
+    <p class="homepage-hero-subtitle">
+        Efficiently manage your inventory, process sales, and gain insights with our modern, user-friendly billing solution.
+    </p>
     
-    <div class="content-container">
-        <div class="hero-container">
-            <h1 class="hero-title">Supermarket Billing System</h1>
-            <p class="hero-subtitle">A modern approach to inventory management and billing solutions for your business</p>
-            
-            <div class="cards-container">
-                <div class="login-card glass">
-                    <img src="https://cdn.jsdelivr.net/npm/heroicons@2.0.16/outline/user-circle.svg" alt="Admin">
-                    <h3>Administrator</h3>
-                    <p>Manage products, view sales data and configure system settings</p>
-                    <a href="/billing/login?role=admin" class="btn login-btn">Login as Admin</a>
-                </div>
-                
-                <div class="login-card glass">
-                    <img src="https://cdn.jsdelivr.net/npm/heroicons@2.0.16/outline/shopping-cart.svg" alt="Staff">
-                    <h3>Staff Member</h3>
-                    <p>Process sales, generate bills and manage day-to-day transactions</p>
-                    <a href="/billing/login?role=staff" class="btn login-btn">Login as Staff</a>
-                </div>
-            </div>
+    <div class="homepage-cards-container">
+        <div class="homepage-login-card glass">
+            <img src="https://cdn.jsdelivr.net/npm/heroicons@2.1.1/outline/user-circle.svg" alt="Admin Icon">
+            <h3>Administrator</h3>
+            <p>Oversee operations, manage products and staff, view sales analytics, and configure system settings.</p>
+            <a href="/billing/login?role=admin" class="btn homepage-login-btn">Admin Login</a>
         </div>
         
-        <div class="footer">
-            <p>&copy; 2023 Supermarket Billing System</p>
+        <div class="homepage-login-card glass">
+            <img src="https://cdn.jsdelivr.net/npm/heroicons@2.1.1/outline/shopping-cart.svg" alt="Staff Icon">
+            <h3>Staff Member</h3>
+            <p>Quickly process customer transactions, generate accurate bills, and manage daily sales tasks with ease.</p>
+            <a href="/billing/login?role=staff" class="btn homepage-login-btn">Staff Login</a>
         </div>
     </div>
-
-    <!-- Script to load the topbar -->
-    <script>
-        // Load the topbar
-        fetch('/billing/ui/topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbarContainer').innerHTML = data;
-                
-                // Set user session data for homepage (guest)
-                window.userSessionData = {
-                    name: 'Guest',
-                    role: 'guest',
-                    email: 'guest@example.com'
-                };
-                
-                // Execute the topbar script manually since innerHTML doesn't execute scripts
-                const scripts = document.getElementById('topbarContainer').querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    Array.from(script.attributes).forEach(attr => {
-                        newScript.setAttribute(attr.name, attr.value);
-                    });
-                    newScript.textContent = script.textContent;
-                    document.getElementById('topbarContainer').appendChild(newScript);
-                });
-            })
-            .catch(error => console.error('Error loading topbar:', error));
-    </script>
-</body>
-</html>
+</div>

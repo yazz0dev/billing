@@ -1,91 +1,181 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Product Management</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="/billing/global.css">
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        
-        .content-container {
-            flex: 1;
-            padding: 1rem 2rem;
-        }
-        
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        
-        .product-card {
-            background: var(--glass-bg);
-            border-radius: var(--border-radius-md);
-            padding: 1.5rem;
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 4px 20px var(--card-shadow);
-        }
-    </style>
-</head>
-<body>
-    <!-- Include the topbar -->
-    <div id="topbarContainer"></div>
-    
-    <div class="content-container">
-        <h1>Product Management</h1>
-        <div id="productList" class="product-grid"></div>
-    </div>
-    
-    <script>
-        async function fetchProducts() {
-            const response = await fetch('/billing/server.php?action=getProducts');
-            const products = await response.json();
-            const productList = document.getElementById('productList');
-            productList.innerHTML = products.map(product => `
-                <div class="product-card">
+//billing/product/index.html 
+<h1 class="page-title">Product Management</h1>
+<div id="productList" class="product-grid">
+    <!-- Products will be loaded here by JS -->
+    <p class="text-center text-light">Loading products...</p>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function fetchProducts() {
+    const productListDiv = document.getElementById('productList');
+    try {
+        const response = await fetch('/billing/server.php?action=getProducts');
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        const products = await response.json();
+
+        if (products && products.length > 0) {
+            productListDiv.innerHTML = products.map(product => `
+                <div class="product-card card-base">
                     <h3>${product.name}</h3>
-                    <p><strong>Price:</strong> ₹${product.price.toFixed(2)}</p>
-                    <p><strong>Stock:</strong> ${product.stock} units</p>
+                    <p class="card-meta"><strong>Price:</strong> ₹${parseFloat(product.price).toFixed(2)}</p>
+                    <p class="card-meta"><strong>Stock:</strong> ${product.stock} units</p>
                 </div>
             `).join('');
+        } else {
+            productListDiv.innerHTML = '<p class="text-center text-light glass p-3">No products found.</p>';
         }
-        fetchProducts();
-    </script>
-    
-    <!-- Script to load the topbar -->
-    <script>
-        // Load the topbar
-        fetch('/billing/ui/topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbarContainer').innerHTML = data;
-                
-                // Set user session data for product page
-                window.userSessionData = {
-                    name: '<?php echo isset($_SESSION["username"]) ? $_SESSION["username"] : "Admin"; ?>',
-                    role: '<?php echo isset($_SESSION["user_role"]) ? $_SESSION["user_role"] : "admin"; ?>',
-                    email: 'admin@example.com'
-                };
-                
-                // Execute the topbar script manually
-                const scripts = document.getElementById('topbarContainer').querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    Array.from(script.attributes).forEach(attr => {
-                        newScript.setAttribute(attr.name, attr.value);
-                    });
-                    newScript.textContent = script.textContent;
-                    document.getElementById('topbarContainer').appendChild(newScript);
-                });
-            })
-            .catch(error => console.error('Error loading topbar:', error));
-    </script>
-</body>
-</html>
+    } catch (error) {
+        console.error("Failed to fetch products:", error);
+        productListDiv.innerHTML = '<p class="text-center text-light glass p-3">Could not load products. Please try again later.</p>';
+        window.popupNotification.error("Failed to load products.", "Data Error");
+    }
+});
+</script>
+```
+
+---
+**`/billing/staff/billview.html`**
+```html
+<h1 class="page-title">Bill History</h1>
+<section class="content-section glass">
+    <h2 class="section-title">Search Bills</h2>
+    <input type="text" id="billSearch" class="bill-search-input" placeholder="Search by Product Name or Bill ID...">
+    <div id="billList" class="card-list mt-3">
+        <!-- Bill cards will be rendered here -->
+         <p class="text-center text-light">Loading bill history...</p>
+    </div>
+</section>
+
+<!-- Bill Details Modal -->
+<div id="billModalBackdrop" class="bill-details-modal-backdrop">
+    <div id="billModalContent" class="bill-details-modal-content glass">
+        <button id="closeBillModalBtn" class="bill-details-modal-close-btn" aria-label="Close modal">&times;</button>
+        <div id="modalInnerContent">
+            <!-- Modal content will be populated by JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let allBills = [];
+    let allProducts = [];
+    const billListDiv = document.getElementById('billList');
+    const billSearchInput = document.getElementById('billSearch');
+    const billModalBackdrop = document.getElementById('billModalBackdrop');
+    const billModalContent = document.getElementById('billModalContent'); // The actual content part
+    const modalInnerContentDiv = document.getElementById('modalInnerContent');
+    const closeBillModalBtn = document.getElementById('closeBillModalBtn');
+
+    async function initializePageData() {
+        try {
+            const [productsRes, billsRes] = await Promise.all([
+                fetch('/billing/server.php?action=getProducts'),
+                fetch('/billing/server.php?action=getBills')
+            ]);
+
+            if (!productsRes.ok) throw new Error(`Products fetch failed: ${productsRes.status}`);
+            allProducts = await productsRes.json();
+
+            if (!billsRes.ok) throw new Error(`Bills fetch failed: ${billsRes.status}`);
+            allBills = await billsRes.json();
+            
+            renderBills();
+        } catch (error) {
+            console.error("Error initializing page data:", error);
+            billListDiv.innerHTML = '<p class="text-center text-light glass p-3">Could not load bill data. Please try again.</p>';
+            window.popupNotification.error("Failed to load bill data.", "Data Error");
+        }
+    }
+
+    function getProductNameById(productId) {
+        const product = allProducts.find(p => (p._id.$oid || p._id) === productId);
+        return product ? product.name : 'Unknown Product';
+    }
+
+    function renderBills(filter = '') {
+        const searchTerm = filter.toLowerCase().trim();
+        let filteredBills = allBills;
+
+        if (searchTerm) {
+            filteredBills = allBills.filter(bill => {
+                const productName = getProductNameById(bill.productId.$oid || bill.productId).toLowerCase();
+                const billId = (bill._id.$oid || bill._id).toLowerCase();
+                return productName.includes(searchTerm) || billId.includes(searchTerm);
+            });
+        }
+
+        if (filteredBills.length === 0) {
+            billListDiv.innerHTML = `<p class="text-center text-light glass p-3">No bills match your search criteria${searchTerm ? '' : ' yet'}.</p>`;
+            return;
+        }
+
+        billListDiv.innerHTML = filteredBills.map(bill => {
+            const billId = bill._id.$oid || bill._id;
+            const productName = getProductNameById(bill.productId.$oid || bill.productId);
+            const billDate = bill.date && (bill.date.$date || bill.date) ? new Date(bill.date.$date || bill.date).toLocaleString() : 'N/A';
+            const totalAmount = bill.total !== undefined ? parseFloat(bill.total).toFixed(2) : 'N/A';
+
+            return `
+            <div class="card-base">
+                <h3 class="card-title">${productName}</h3>
+                <p class="card-meta">Quantity: ${bill.quantity || 'N/A'}</p>
+                <p class="card-meta">Total: ₹${totalAmount}</p>
+                <p class="card-meta">Date: ${billDate}</p>
+                <p class="card-meta" style="font-size:0.8em; opacity:0.7;">ID: ${billId}</p>
+                <div class="card-actions">
+                    <button class="btn" onclick="window.expandBillDetails('${billId}')">View Details</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    window.expandBillDetails = function(billId) {
+        const bill = allBills.find(b => (b._id.$oid || b._id) === billId);
+        if (!bill || !modalInnerContentDiv) return;
+
+        const productName = getProductNameById(bill.productId.$oid || bill.productId);
+        const billDate = bill.date && (bill.date.$date || bill.date) ? new Date(bill.date.$date || bill.date).toLocaleString() : 'N/A';
+        const totalAmount = bill.total !== undefined ? parseFloat(bill.total).toFixed(2) : 'N/A';
+
+        modalInnerContentDiv.innerHTML = `
+            <h2>Bill Details</h2>
+            <p><b>Product:</b> ${productName}</p>
+            <p><b>Quantity:</b> ${bill.quantity || 'N/A'}</p>
+            <p><b>Unit Price:</b> ₹${(totalAmount !== 'N/A' && bill.quantity) ? (parseFloat(totalAmount) / bill.quantity).toFixed(2) : 'N/A'}</p>
+            <p><b>Total Amount:</b> ₹${totalAmount}</p>
+            <p><b>Date:</b> ${billDate}</p>
+            <p><b>Bill ID:</b> ${billId}</p>
+        `;
+        if (billModalBackdrop) billModalBackdrop.style.display = 'flex';
+    };
+
+    function closeModal() {
+        if (billModalBackdrop) billModalBackdrop.style.display = 'none';
+    }
+
+    if (closeBillModalBtn) closeBillModalBtn.addEventListener('click', closeModal);
+    if (billModalBackdrop) { // Close on backdrop click
+        billModalBackdrop.addEventListener('click', function(event) {
+            if (event.target === billModalBackdrop) {
+                closeModal();
+            }
+        });
+    }
+     // Close on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === "Escape" && billModalBackdrop && billModalBackdrop.style.display === 'flex') {
+            closeModal();
+        }
+    });
+
+
+    if (billSearchInput) {
+        billSearchInput.addEventListener('input', function() {
+            renderBills(this.value);
+        });
+    }
+
+    initializePageData();
+});
+</script>

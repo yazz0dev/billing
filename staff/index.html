@@ -1,243 +1,257 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supermarket Billing</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="/billing/global.css">
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        
-        .content-container {
-            flex: 1;
-            padding: 1rem 2rem;
-        }
-    </style>
-</head>
-<body>
-    <!-- Include the topbar -->
-    <div id="topbarContainer"></div>
-    
-    <div class="content-container">
-        <h1>Supermarket Billing</h1>
-        <section class="glass">
-            <h2>Add Products to Cart</h2>
-            <form id="addToCartForm" autocomplete="off">
-                <div class="flex gap-2">
-                    <input type="text" id="productSearch" placeholder="Search product by name..." required list="productListDatalist">
-                    <datalist id="productListDatalist"></datalist>
-                    <input type="number" id="quantityInput" placeholder="Quantity" min="1" value="1" required>
-                    <button type="submit">Add to Cart</button>
-                </div>
-            </form>
-        </section>
-        <section class="glass">
-            <h2>Cart</h2>
-            <div id="cartContainer">
-                <table id="cartTable">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Unit Price</th>
-                            <th>Quantity</th>
-                            <th>Subtotal</th>
-                            <th>Remove</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Cart items will be rendered here -->
-                    </tbody>
-                </table>
-                <div class="text-right mt-3">
-                    <span style="font-size:1.2rem;font-weight:600;">Total: ₹<span id="cartTotal">0.00</span></span>
-                </div>
-                <div class="text-right mt-3">
-                    <button id="checkoutBtn" class="btn" disabled>Checkout & Print Bill</button>
-                </div>
+//billing/staff/index.html
+<h1 class="page-title">Supermarket Billing</h1>
+
+<section class="content-section glass">
+    <h2 class="section-title">Add Products to Cart</h2>
+    <form id="addToCartForm" autocomplete="off">
+        <div class="flex flex-col gap-2 md:flex-row"> <!-- Responsive flex direction -->
+            <div class="form-group flex-grow mb-0"> <!-- mb-0 to align with button if in row -->
+                 <label for="productSearch" class="sr-only">Search Product</label> <!-- Screen reader only label -->
+                <input type="text" id="productSearch" placeholder="Search product by name..." required list="productListDatalist" class="w-full">
+                <datalist id="productListDatalist"></datalist>
             </div>
-        </section>
+            <div class="form-group w-full md:w-auto mb-0"> <!-- Control width on mobile/desktop -->
+                 <label for="quantityInput" class="sr-only">Quantity</label>
+                <input type="number" id="quantityInput" placeholder="Qty" min="1" value="1" required class="w-full md:w-24 text-center"> <!-- Smaller width for qty -->
+            </div>
+            <button type="submit" class="btn self-start md:self-center">Add to Cart</button> <!-- Align button -->
+        </div>
+    </form>
+</section>
+
+<section class="content-section glass">
+    <h2 class="section-title">Current Cart</h2>
+    <div id="cartContainer">
+        <div class="table-wrapper"> <!-- Wrapper for responsive table -->
+            <table id="cartTable">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Unit Price</th>
+                        <th>Quantity</th>
+                        <th>Subtotal</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Cart items will be rendered here -->
+                    <tr><td colspan="5" class="text-center p-4">Your cart is empty.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="text-right mt-3">
+            <span style="font-size:1.3rem;font-weight:600;">Total: ₹<span id="cartTotal">0.00</span></span>
+        </div>
+        <div class="text-right mt-3">
+            <button id="checkoutBtn" class="btn btn-success" disabled> <!-- Added btn-success for emphasis -->
+                Checkout & Print Bill
+            </button>
+        </div>
     </div>
-    
-    <!-- Include popup notification script -->
-    <script src="/billing/js/popup-notification.js"></script>
-    
-    <script>
-        // --- Product search and cart logic ---
-        let products = [];
-        let cart = [];
+</section>
 
-        // Fetch products for autocomplete
-        async function fetchProducts() {
-            const res = await fetch('/billing/server.php?action=getProducts');
-            products = await res.json();
-            const datalist = document.getElementById('productListDatalist');
-            datalist.innerHTML = products.map(p =>
-                `<option value="${p.name}" data-id="${p._id.$oid}" data-price="${p.price}" data-stock="${p.stock}"></option>`
-            ).join('');
+<!-- Add sr-only class for visually hidden labels -->
+<style>.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }</style>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let allProducts = [];
+    let cart = [];
+
+    const productSearchInput = document.getElementById('productSearch');
+    const quantityInput = document.getElementById('quantityInput');
+    const productDatalist = document.getElementById('productListDatalist');
+    const addToCartForm = document.getElementById('addToCartForm');
+    const cartTableBody = document.querySelector('#cartTable tbody');
+    const cartTotalSpan = document.getElementById('cartTotal');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+
+    async function fetchAllProducts() {
+        try {
+            const response = await fetch('/billing/server.php?action=getProducts');
+            if (!response.ok) throw new Error(`Product fetch failed: ${response.status}`);
+            allProducts = await response.json();
+            populateProductDatalist();
+        } catch (error) {
+            console.error("Failed to fetch products:", error);
+            window.popupNotification.error("Could not load products for search.", "Product Data Error");
+        }
+    }
+
+    function populateProductDatalist() {
+        if (!productDatalist) return;
+        productDatalist.innerHTML = allProducts.map(p =>
+            `<option value="${p.name}" data-id="${p._id.$oid || p._id}" data-price="${p.price}" data-stock="${p.stock}"></option>`
+        ).join('');
+    }
+
+    function findProductInCacheByName(name) {
+        return allProducts.find(p => p.name.toLowerCase() === name.toLowerCase().trim());
+    }
+
+    function handleAddToCart(event) {
+        event.preventDefault();
+        const productName = productSearchInput.value.trim();
+        const quantity = parseInt(quantityInput.value, 10);
+
+        if (!productName) {
+            window.popupNotification.warning("Please enter a product name.", "Input Required");
+            return;
+        }
+        if (isNaN(quantity) || quantity < 1) {
+            window.popupNotification.warning("Please enter a valid quantity.", "Input Invalid");
+            return;
         }
 
-        // Find product by name
-        function findProductByName(name) {
-            return products.find(p => p.name.toLowerCase() === name.toLowerCase());
+        const product = findProductInCacheByName(productName);
+        if (!product) {
+            window.popupNotification.error(`Product "${productName}" not found.`, "Product Not Found");
+            return;
         }
 
-        // Add to cart
-        document.getElementById('addToCartForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const name = document.getElementById('productSearch').value.trim();
-            const qty = parseInt(document.getElementById('quantityInput').value, 10);
-            const product = findProductByName(name);
-            if (!product) {
-                window.popupNotification.error(`Product "${name}" not found!`, "Error");
-                return;
-            }
-            if (qty < 1 || qty > product.stock) {
-                window.popupNotification.warning(`Invalid quantity. Available stock: ${product.stock}`, "Stock Warning");
-                return;
-            }
-            // Check if already in cart
-            const existing = cart.find(item => item._id.$oid === product._id.$oid);
-            if (existing) {
-                if (existing.quantity + qty > product.stock) {
-                    window.popupNotification.error("Exceeds available stock!", "Stock Error");
-                    return;
-                }
-                existing.quantity += qty;
-                window.popupNotification.info(`Updated quantity of "${product.name}" to ${existing.quantity}`, "Cart Updated");
-            } else {
-                cart.push({
-                    _id: product._id,
-                    name: product.name,
-                    price: product.price,
-                    stock: product.stock,
-                    quantity: qty
-                });
-                window.popupNotification.success(`Added "${product.name}" to cart`, "Product Added");
-            }
-            renderCart();
-            this.reset();
-            document.getElementById('quantityInput').value = 1;
-        });
+        if (quantity > product.stock) {
+            window.popupNotification.warning(`Not enough stock for "${product.name}". Available: ${product.stock}`, "Stock Warning");
+            return;
+        }
 
-        // Render cart table
-        function renderCart() {
-            const tbody = document.querySelector('#cartTable tbody');
-            tbody.innerHTML = '';
-            let total = 0;
-            cart.forEach((item, idx) => {
-                const subtotal = item.price * item.quantity;
-                total += subtotal;
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${item.name}</td>
-                    <td>₹${item.price.toFixed(2)}</td>
-                    <td>${item.quantity}</td>
-                    <td>₹${subtotal.toFixed(2)}</td>
-                    <td><button onclick="removeFromCart(${idx})" class="btn" style="background:var(--error);padding:0.5rem 1rem;font-size:0.9rem;">Remove</button></td>
-                `;
-                tbody.appendChild(tr);
+        const existingCartItem = cart.find(item => (item._id.$oid || item._id) === (product._id.$oid || product._id));
+        if (existingCartItem) {
+            if (existingCartItem.quantity + quantity > product.stock) {
+                window.popupNotification.error(`Cannot add ${quantity} more. Total would exceed stock for "${product.name}".`, "Stock Error");
+                return;
+            }
+            existingCartItem.quantity += quantity;
+            window.popupNotification.info(`Updated quantity of "${product.name}" to ${existingCartItem.quantity}.`, "Cart Updated");
+        } else {
+            cart.push({
+                ...product, // Spread product details
+                quantity: quantity
             });
-            document.getElementById('cartTotal').innerText = total.toFixed(2);
-            document.getElementById('checkoutBtn').disabled = cart.length === 0;
+            window.popupNotification.success(`Added "${product.name}" to cart.`, "Item Added");
+        }
+        renderCartTable();
+        addToCartForm.reset();
+        quantityInput.value = 1; // Reset quantity to 1
+        productSearchInput.focus();
+    }
+
+    function renderCartTable() {
+        if (!cartTableBody) return;
+        if (cart.length === 0) {
+            cartTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Your cart is empty.</td></tr>';
+        } else {
+            cartTableBody.innerHTML = cart.map((item, index) => {
+                const subtotal = (item.price || 0) * item.quantity;
+                return `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>₹${parseFloat(item.price || 0).toFixed(2)}</td>
+                        <td>${item.quantity}</td>
+                        <td>₹${subtotal.toFixed(2)}</td>
+                        <td><button class="btn" style="background:var(--error);padding:0.5rem 1rem;font-size:0.9rem;" onclick="window.handleRemoveFromCart(${index})">Remove</button></td>
+                    </tr>`;
+            }).join('');
+        }
+        updateCartTotal();
+        checkoutBtn.disabled = cart.length === 0;
+    }
+
+    function updateCartTotal() {
+        const total = cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+        if (cartTotalSpan) cartTotalSpan.innerText = total.toFixed(2);
+    }
+
+    window.handleRemoveFromCart = function(index) {
+        if (cart[index]) {
+            const removedItemName = cart[index].name;
+            window.confirmNotification(
+                `Are you sure you want to remove "${removedItemName}" from the cart?`,
+                () => {
+                    cart.splice(index, 1);
+                    renderCartTable();
+                    window.popupNotification.info(`Removed "${removedItemName}" from cart.`, "Item Removed");
+                }
+            );
+        }
+    }
+
+    async function handleCheckout() {
+        if (cart.length === 0) {
+            window.popupNotification.info("Your cart is empty. Add items to checkout.", "Empty Cart");
+            return;
         }
 
-        // Remove from cart
-        window.removeFromCart = function(idx) {
-            const removedItem = cart[idx];
-            window.confirmNotification(
-                `Are you sure you want to remove "${removedItem.name}" from the cart?`,
-                function() {
-                    cart.splice(idx, 1);
-                    renderCart();
-                    window.popupNotification.info(`Removed "${removedItem.name}" from cart`, "Item Removed");
-                }
-            );
-        };
+        const totalAmountText = cartTotalSpan ? cartTotalSpan.innerText : '0.00';
+        window.confirmNotification(
+            `Proceed to checkout with ${cart.length} item(s) for a total of ₹${totalAmountText}?`,
+            async () => {
+                checkoutBtn.disabled = true;
+                checkoutBtn.textContent = 'Processing...';
+                let successfulBills = 0;
+                let errors = [];
 
-        // Checkout and bill all items
-        document.getElementById('checkoutBtn').addEventListener('click', async function() {
-            if (!cart.length) return;
-            
-            window.confirmNotification(
-                `Are you sure you want to checkout with ${cart.length} items for a total of ₹${document.getElementById('cartTotal').innerText}?`,
-                async function() {
-                    let errors = [];
-                    for (const item of cart) {
-                        const formData = new FormData();
-                        formData.append('action', 'billProduct');
-                        formData.append('productId', item._id.$oid);
-                        formData.append('quantity', item.quantity);
-                        const res = await fetch('/billing/server.php', { method: 'POST', body: formData });
-                        const result = await res.json();
-                        if (result.status !== 'success') {
-                            errors.push(`${item.name}: ${result.message}`);
+                for (const item of cart) {
+                    const formData = new FormData();
+                    formData.append('action', 'billProduct');
+                    formData.append('productId', item._id.$oid || item._id);
+                    formData.append('quantity', item.quantity);
+                    try {
+                        const response = await fetch('/billing/server.php', { method: 'POST', body: formData });
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            successfulBills++;
+                        } else {
+                            errors.push(`${item.name}: ${result.message || 'Billing failed'}`);
                         }
+                    } catch (error) {
+                        errors.push(`${item.name}: Network or server error during billing.`);
+                        console.error(`Billing error for ${item.name}:`, error);
                     }
-                    if (errors.length) {
-                        window.popupNotification.error(
-                            `Some items could not be billed:<br>${errors.join('<br>')}`,
-                            "Billing Error",
-                            10000
-                        );
-                    } else {
-                        window.popupNotification.success(
-                            `Successfully billed ${cart.length} items for a total of ₹${document.getElementById('cartTotal').innerText}`,
-                            "Billing Successful"
-                        );
-                        window.print(); // Print the bill
-                    }
-                    cart = [];
-                    renderCart();
-                    fetchProducts(); // Refresh stock
                 }
-            );
-        });
 
-        // On page load
-        fetchProducts();
-        renderCart();
-        
-        // Show welcome message after a slight delay
-        setTimeout(() => {
-            window.popupNotification.info(
-                "Welcome to the Billing System. Add products to cart and checkout to generate a bill.",
-                "Welcome"
-            );
-        }, 1000);
-    </script>
-    
-    <!-- Script to load the topbar -->
-    <script>
-        // Load the topbar
-        fetch('/billing/ui/topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbarContainer').innerHTML = data;
-                
-                // Set user session data for staff page
-                window.userSessionData = {
-                    name: '<?php echo isset($_SESSION["username"]) ? $_SESSION["username"] : "Staff"; ?>',
-                    role: '<?php echo isset($_SESSION["user_role"]) ? $_SESSION["user_role"] : "staff"; ?>',
-                    email: 'staff@example.com'
-                };
-                
-                // Execute the topbar script manually
-                const scripts = document.getElementById('topbarContainer').querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    Array.from(script.attributes).forEach(attr => {
-                        newScript.setAttribute(attr.name, attr.value);
-                    });
-                    newScript.textContent = script.textContent;
-                    document.getElementById('topbarContainer').appendChild(newScript);
-                });
-            })
-            .catch(error => console.error('Error loading topbar:', error));
-    </script>
-</body>
-</html>
+                if (errors.length > 0) {
+                    window.popupNotification.error(
+                        `Some items could not be billed:<br>${errors.join('<br>')}<br>Successfully billed ${successfulBills} items.`,
+                        "Billing Issues",
+                        10000 // Longer duration for error messages
+                    );
+                } else if (successfulBills > 0) {
+                    window.popupNotification.success(
+                        `Successfully billed ${successfulBills} item(s) for a total of ₹${totalAmountText}.`,
+                        "Billing Complete!"
+                    );
+                    // Consider if window.print() is desired here or if a separate "Print Receipt" button is better
+                    // For now, let's assume it's for a physical POS where print might happen
+                    // If this is purely web, `window.print()` might not be the best UX for receipt.
+                    // window.print(); // This will print the current staff page, probably not what's wanted for a receipt.
+                    // A dedicated receipt page/modal would be better.
+                } else {
+                     window.popupNotification.error("No items were billed.", "Billing Failed");
+                }
+
+                cart = []; // Clear cart after attempting checkout
+                renderCartTable();
+                await fetchAllProducts(); // Refresh product stock in datalist
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = 'Checkout & Print Bill';
+            }
+        );
+    }
+
+    if (addToCartForm) addToCartForm.addEventListener('submit', handleAddToCart);
+    if (checkoutBtn) checkoutBtn.addEventListener('click', handleCheckout);
+
+    // Initial setup
+    fetchAllProducts();
+    renderCartTable(); // To show "cart is empty" initially
+
+    setTimeout(() => {
+        window.popupNotification.info(
+            "Welcome to the Billing System! Search for products and add them to your cart.",
+            "Welcome!",
+            7000
+        );
+    }, 1200);
+});
+</script>
