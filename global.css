@@ -3,52 +3,129 @@
 /* Force browser to reload the stylesheet and not use cached version */
 :root {
     --css-loaded: "yes";
-    --primary: #4f46e5;
-    --primary-dark: #4338ca;
-    --secondary: #06b6d4;
-    --secondary-dark: #0891b2;
-    --text: #1e293b;
-    --text-light: #64748b;
-    --bg-gradient-1: #e0f2fe;
-    --bg-gradient-2: #f0fdfa;
-    --white: #ffffff;
-    --glass-bg: rgba(255, 255, 255, 0.65);
-    --glass-border: rgba(255, 255, 255, 0.4);
-    --glass-shadow: rgba(31, 38, 135, 0.12);
-    --card-shadow: rgba(0, 0, 0, 0.08);
-    --error: #ef4444;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --info: #3b82f6;
-    --input-bg: rgba(255, 255, 255, 0.8);
-    --input-text: #1e293b;
-    --border-radius-sm: 10px;
-    --border-radius-md: 16px;
-    --border-radius-lg: 24px;
+
+    /* Primary Palette - Modern Blue */
+    --primary: #2563eb;           /* Blue-600 */
+    --primary-dark: #1d4ed8;      /* Blue-700 (for hovers, darker elements) */
+    --primary-focus-ring: rgba(37, 99, 235, 0.3); /* Blue-600 with opacity */
+
+    /* Secondary Palette - Teal Accent */
+    --secondary: #0d9488;         /* Teal-600 */
+    --secondary-dark: #0f766e;    /* Teal-700 (for hovers, darker elements) */
+
+    /* Neutral Backgrounds */
+    --bg-body: #f8fafc;           /* Slate-50 */
+    --bg-surface: #ffffff;        /* White */
+    --bg-surface-alt: #f1f5f9;    /* Slate-100 */
+
+    /* Text Colors */
+    --text-heading: #1e293b;      /* Slate-800 (for main headings) */
+    --text-primary: #0f172a;      /* Slate-900 (for body text, high contrast) */
+    --text-secondary: #475569;    /* Slate-600 (for subtitles, meta text) */
+    --text-on-primary: #ffffff;   /* White text on primary buttons */
+    --text-on-secondary: #ffffff; /* White text on secondary elements */
+    --text-link: var(--primary);
+    --text-link-hover: var(--primary-dark);
+    --white: #ffffff; /* Retained for explicit white if needed */
+
+    /* Borders */
+    --border-color-subtle: #e2e8f0;     /* Slate-200 */
+    --border-color-strong: #cbd5e1;     /* Slate-300 */
+    --border-color-interactive: var(--primary);
+
+    /* Glassmorphism & Cards - Light */
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border-color: #e2e8f0; /* Slate-200 */
+    --glass-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.08);
+    --card-shadow: 0 4px 12px 0 rgba(15, 23, 42, 0.06);
+
+    /* Semantic Colors */
+    --error: #dc2626;             /* Red-600 */
+    --error-bg: #fee2e2;          /* Red-100 */
+    --error-text-emphasis: #991b1b;        /* Red-800 */
+    --success: #059669;           /* Green-600 */
+    --success-bg: #d1fae5;        /* Green-100 */
+    --success-text-emphasis: #047857;      /* Green-700 */
+    --warning: #f59e0b;           /* Amber-500 */
+    --warning-bg: #fef3c7;        /* Amber-100 */
+    --warning-text-emphasis: #b45309;      /* Amber-700 */
+    --info: #2563eb;              /* Blue-600 (Primary) */
+    --info-bg: #dbeafe;           /* Blue-100 */
+    --info-text-emphasis: #1e40af;         /* Blue-800 */
+
+    /* Input Specific */
+    --input-bg: var(--bg-surface);
+    --input-text: var(--text-primary);
+    --input-placeholder-text: var(--text-secondary); /* Renamed for clarity */
+    --input-border-color: var(--border-color-subtle);
+    --input-focus-border-color: var(--primary);
+    --input-focus-shadow: 0 0 0 3px var(--primary-focus-ring);
+
+    /* Radii */
+    --border-radius-sm: 8px;
+    --border-radius-md: 12px;
+    --border-radius-lg: 20px;
 
     /* Topbar specific variables */
-    --topbar-bg: rgba(255, 255, 255, 0.65);
-    --topbar-border: rgba(255, 255, 255, 0.4);
-    --topbar-shadow: rgba(0, 0, 0, 0.05);
-    --dropdown-shadow: rgba(31, 38, 135, 0.12);
-    --topbar-height: 60px; /* Define explicit height variable for topbar */
+    --topbar-height: 60px;
+    --topbar-bg: rgba(248, 250, 252, 0.85); /* --bg-body with alpha */
+    --topbar-border-color: var(--border-color-subtle);
+    --topbar-shadow: 0 2px 8px 0 rgba(15, 23, 42, 0.05);
+    --dropdown-shadow: var(--glass-shadow);
 }
 
 body.dark-mode {
-    --text: #f1f5f9;
-    --text-light: #cbd5e1;
-    --bg-gradient-1: #0f172a;
-    --bg-gradient-2: #1e293b;
-    --glass-bg: rgba(15, 23, 42, 0.75);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: rgba(0, 0, 0, 0.3);
-    --card-shadow: rgba(0, 0, 0, 0.2);
-    --input-bg: rgba(15, 23, 42, 0.8);
-    --input-text: #f1f5f9;
+    /* Primary & Secondary are inherited. */
 
-    --topbar-bg: rgba(15, 23, 42, 0.8);
-    --topbar-border: rgba(255, 255, 255, 0.1);
-    --topbar-shadow: rgba(0, 0, 0, 0.2);
+    /* Neutral Backgrounds - Dark */
+    --bg-body: #0f172a;           /* Slate-900 */
+    --bg-surface: #1e293b;        /* Slate-800 */
+    --bg-surface-alt: #334155;    /* Slate-700 */
+
+    /* Text Colors - Dark */
+    --text-heading: #e2e8f0;      /* Slate-200 */
+    --text-primary: #f1f5f9;      /* Slate-100 */
+    --text-secondary: #94a3b8;    /* Slate-400 */
+    /* --text-link and --text-link-hover inherited, or override if needed:
+       --text-link: #60a5fa; (Blue-400)
+       --text-link-hover: #93c5fd; (Blue-300)
+    */
+
+    /* Borders - Dark */
+    --border-color-subtle: #334155;     /* Slate-700 */
+    --border-color-strong: #475569;     /* Slate-600 */
+
+    /* Glassmorphism & Cards - Dark */
+    --glass-bg: rgba(30, 41, 59, 0.75);
+    --glass-border-color: #475569; /* Slate-600 */
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    --card-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.25);
+
+    /* Semantic Colors - Dark */
+    --error: #f87171;             /* Red-400 */
+    --error-bg: #3f1212;
+    --error-text-emphasis: #fca5a5;        /* Red-300 */
+    --success: #34d399;           /* Green-400 */
+    --success-bg: #06281e;
+    --success-text-emphasis: #6ee7b7;      /* Green-300 */
+    --warning: #fbbf24;           /* Amber-400 */
+    --warning-bg: #452c07;
+    --warning-text-emphasis: #fcd34d;      /* Amber-300 */
+    --info: #60a5fa;              /* Blue-400 */
+    --info-bg: #172554;           /* Darker Blue for bg */
+    --info-text-emphasis: #93c5fd;         /* Blue-300 */
+
+    /* Input Specific - Dark */
+    --input-bg: var(--bg-surface-alt);
+    --input-text: var(--text-primary);
+    --input-placeholder-text: var(--text-secondary);
+    --input-border-color: var(--border-color-strong);
+    /* --input-focus-border-color: var(--primary); (Inherited or brighter blue e.g. #60a5fa) */
+
+    /* Topbar specific variables - Dark */
+    --topbar-bg: rgba(15, 23, 42, 0.85); /* --bg-body-dark with alpha */
+    --topbar-border-color: var(--border-color-subtle);
+    --topbar-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.25);
 }
 
 * {
@@ -62,8 +139,8 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 100%);
-    color: var(--text);
+    background-color: var(--bg-body);
+    color: var(--text-primary);
     line-height: 1.7;
     overflow-x: hidden;
     padding-top: var(--topbar-height); /* Add padding to body to account for fixed topbar */
@@ -97,7 +174,7 @@ body {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-radius: var(--border-radius-lg);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--glass-border-color);
     box-shadow: 0 8px 32px 0 var(--glass-shadow);
     transition: all 0.3s ease;
     overflow: hidden;
@@ -128,7 +205,7 @@ body.dark-mode .glass::before {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
-    color: var(--text);
+    color: var(--text-heading);
     font-weight: 700;
 }
 
@@ -162,7 +239,7 @@ h1, h2, h3, h4, h5, h6 {
 .section-title { /* For H2s */
     font-size: 1.75rem;
     margin-bottom: 1.5rem;
-    color: var(--primary-dark);
+    color: var(--text-heading); /* Section titles should use heading color */
     position: relative;
     padding-bottom: 8px;
 }
@@ -179,14 +256,14 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Links */
 a {
-    color: var(--primary);
+    color: var(--text-link);
     text-decoration: none;
     font-weight: 500;
     transition: all 0.2s ease;
 }
 
 a:hover {
-    color: var(--primary-dark);
+    color: var(--text-link-hover);
     text-decoration: underline;
 }
 
@@ -194,28 +271,29 @@ a:hover {
 button, .btn {
     display: inline-block;
     padding: 0.9rem 1.8rem;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white !important; /* Ensure text is white */
+    background: var(--primary);
+    color: var(--text-on-primary) !important;
     border: none;
     border-radius: var(--border-radius-sm);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Subtle shadow */
     text-decoration: none !important; /* Remove underline for buttons */
 }
 
 button:hover, .btn:hover {
-    background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3);
+    background: var(--primary-dark);
+    transform: translateY(-2px); /* Slightly less lift */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Enhanced shadow on hover */
 }
 
 button:disabled, .btn.disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none !important;
-    background: var(--text-light);
+    background: var(--border-color-strong); /* Using a neutral disabled background */
+    color: var(--text-secondary) !important;
 }
 
 /* Forms */
@@ -236,7 +314,7 @@ textarea {
     font-size: 1rem;
     background: var(--input-bg);
     color: var(--input-text);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--input-border-color);
     border-radius: var(--border-radius-sm);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
@@ -245,23 +323,23 @@ textarea {
 }
 
 ::placeholder {
-    color: var(--text-light);
+    color: var(--input-placeholder-text);
     opacity: 0.7;
 }
-:-ms-input-placeholder { color: var(--text-light); opacity: 0.7; }
-::-ms-input-placeholder { color: var(--text-light); opacity: 0.7; }
+:-ms-input-placeholder { color: var(--input-placeholder-text); opacity: 0.7; }
+::-ms-input-placeholder { color: var(--input-placeholder-text); opacity: 0.7; }
 
 input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    border-color: var(--input-focus-border-color);
+    box-shadow: var(--input-focus-shadow);
 }
 
 option {
     background: var(--input-bg); /* Might not work in all browsers */
-    color: var(--input-text);
+    color: var(--text-primary); /* Assuming options should use general text color */
 }
 
 /* Content Sections (general purpose) */
@@ -272,14 +350,14 @@ option {
 
 /* Card Components */
 .card-base { /* Base styling for cards */
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--bg-surface); /* Use surface color for cards */
+    backdrop-filter: none; /* Removing blur for standard cards, glass can be added separately */
+    -webkit-backdrop-filter: none;
     border-radius: var(--border-radius-md);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--border-color-subtle); /* Subtle border for cards */
     padding: 1.8rem;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 20px var(--card-shadow);
+    box-shadow: var(--card-shadow); /* Use new card shadow */
     position: relative;
     overflow: hidden;
 }
@@ -296,18 +374,19 @@ option {
 
 .card-base:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12); /* Slightly more pronounced hover */
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.1); /* Adjusted hover shadow */
+    border-color: var(--border-color-strong);
 }
 
 .card-title {
     font-size: 1.25rem;
     font-weight: 700;
     margin-bottom: 1rem;
-    color: var(--primary-dark);
+    color: var(--text-heading);
 }
 
 .card-meta {
-    color: var(--text-light);
+    color: var(--text-secondary);
     font-size: 0.95rem;
     margin-bottom: 0.5rem;
 }
@@ -330,11 +409,12 @@ option {
 .table-wrapper { /* For responsive tables */
     overflow-x: auto;
     margin: 1.5rem 0;
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--bg-surface); /* Table wrapper with surface color */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border-radius: var(--border-radius-md);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--card-shadow); /* Consistent shadow */
+    border: 1px solid var(--border-color-subtle);
 }
 
 table {
@@ -347,21 +427,21 @@ table th,
 table td {
     padding: 1rem 1.2rem; /* Adjusted padding */
     text-align: left;
-    border-bottom: 1px solid var(--glass-border); /* Use glass border for consistency */
+    border-bottom: 1px solid var(--border-color-subtle); /* Use subtle border for table rows */
 }
 
 table th {
-    background: rgba(79, 70, 229, 0.1);
+    background: var(--bg-surface-alt); /* Use alt surface for table headers */
     font-weight: 600;
-    color: var(--primary-dark);
+    color: var(--text-heading);
     white-space: nowrap; /* Prevent header text wrapping */
 }
 
 table tbody tr:hover {
-    background: rgba(var(--primary-rgb, 79, 70, 229), 0.05); /* Use primary color tint for hover */
+    background: var(--bg-surface-alt); /* Hover effect for light mode */
 }
 body.dark-mode table tbody tr:hover {
-    background: rgba(var(--primary-rgb, 79, 70, 229), 0.15);
+    background: #334155; /* Slate-700 for dark mode table row hover */
 }
 
 
@@ -375,10 +455,12 @@ table tbody tr:last-child td {
     padding: 1.5rem;
     margin-top: auto; /* Pushes footer to bottom if content is short */
     font-size: 0.9rem;
-    color: var(--text-light);
+    color: var(--text-secondary);
 }
 
 /* Utility Classes */
+.text-danger { color: var(--error) !important; }
+.text-danger:hover { color: var(--error-text-emphasis) !important; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .flex { display: flex; }
@@ -424,14 +506,14 @@ table tbody tr:last-child td {
 /* Styles moved from admin/index.html */
 #salesData {
     margin-top: 1.5rem;
-    background: var(--input-bg);
+    background: var(--bg-surface-alt); /* Use alt surface for this data block */
     padding: 1.5rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--border-radius-md); /* Consistent medium radius */
     max-height: 400px;
     overflow-y: auto;
     white-space: pre-wrap;
     font-family: monospace;
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--border-color-subtle);
 }
 
 /* Styles moved from login/index.html */
@@ -459,7 +541,7 @@ table tbody tr:last-child td {
     background: none;
     -webkit-background-clip: unset;
     background-clip: unset;
-    color: var(--primary);
+    color: var(--text-heading); /* Login header uses heading color */
     margin-bottom: 0.5rem;
     padding-bottom: 0;
     display: block; /* Reset from inline-block */
@@ -469,7 +551,7 @@ table tbody tr:last-child td {
 .login-header h1::after { display: none; } /* Remove global H1 underline */
 
 .login-header p {
-    color: var(--text-light);
+    color: var(--text-secondary);
     font-size: 1rem;
 }
 
@@ -522,7 +604,7 @@ table tbody tr:last-child td {
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    color: var(--text);
+    color: var(--text-primary);
     font-weight: 500;
 }
 
@@ -539,7 +621,7 @@ table tbody tr:last-child td {
     top: 50%;
     left: 1rem;
     transform: translateY(-50%);
-    color: var(--primary);
+    color: var(--text-secondary); /* Icon color more subtle */
     width: 18px;
     height: 18px;
 }
@@ -559,13 +641,13 @@ table tbody tr:last-child td {
 }
 
 .login-error-message {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--error);
+    background: var(--error-bg);
+    color: var(--error-text-emphasis);
     padding: 0.75rem 1rem;
     border-radius: var(--border-radius-sm);
-    margin-bottom: 1.5rem; /* Increased margin */
+    margin-bottom: 1.5rem;
     font-size: 0.9rem;
-    display: none; /* Initially hidden */
+    display: none;
     border: 1px solid var(--error);
     border-left-width: 4px;
 }
@@ -584,7 +666,7 @@ table tbody tr:last-child td {
 }
 .product-card h3 {
     font-size: 1.15rem;
-    color: var(--text);
+    color: var(--text-heading);
 }
 
 /* Styles moved from staff/billview.html */
@@ -598,7 +680,7 @@ table tbody tr:last-child td {
     position:fixed;
     top:0;left:0;
     width:100vw;height:100vh;
-    background:rgba(0,0,0,0.35); /* Darker backdrop */
+    background:rgba(15, 23, 42, 0.5); /* Slate-900 with alpha for backdrop */
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     z-index:1050; /* Higher z-index */
@@ -616,23 +698,23 @@ table tbody tr:last-child td {
 }
 .bill-details-modal-content h2 {
     font-size: 1.5rem;
-    color: var(--primary);
+    color: var(--text-heading);
     margin-bottom: 1rem;
     text-align: center;
 }
 .bill-details-modal-content p {
     margin-bottom: 0.75rem;
-    color: var(--text-light);
+    color: var(--text-secondary);
 }
 .bill-details-modal-content p b {
-    color: var(--text);
+    color: var(--text-primary);
     margin-right: 0.5em;
 }
 .bill-details-modal-close-btn {
     position:absolute;
     top:1rem;right:1rem;
-    background:var(--error) !important; /* Ensure error color */
-    color: white !important;
+    background:var(--error) !important;
+    color: var(--text-on-primary) !important; /* Assuming error button text is light */
     border-radius: 50%;
     width: 30px;
     height: 30px;
@@ -644,7 +726,7 @@ table tbody tr:last-child td {
     line-height: 1;
 }
 .bill-details-modal-close-btn:hover {
-    background: var(--secondary-dark) !important;
+    background: var(--error-dark, #b91c1c) !important; /* Define --error-dark or use a darker red */
 }
 
 
@@ -664,7 +746,7 @@ table tbody tr:last-child td {
     background: none;
     -webkit-background-clip: unset;
     background-clip: unset;
-    color: var(--primary);
+    color: var(--text-heading);
     padding-bottom: 0;
     display: block;
     left: auto;
@@ -673,7 +755,7 @@ table tbody tr:last-child td {
 .homepage-hero-title::after { display: none; }
 
 .homepage-hero-subtitle {
-    color: var(--text-light);
+    color: var(--text-secondary);
     font-size: 1.2rem;
     max-width: 650px; /* Slightly wider */
     margin-bottom: 3rem;
@@ -706,18 +788,18 @@ table tbody tr:last-child td {
     height: 70px;
     margin-bottom: 1.5rem;
     object-fit: contain;
-    color: var(--primary); /* For SVG fill if not set intrinsically */
+    color: var(--primary); /* Keep primary for icon emphasis */
 }
 
 .homepage-login-card h3 {
     margin-bottom: 1rem;
-    color: var(--primary-dark);
+    color: var(--text-heading);
     font-size: 1.35rem;
 }
 
 .homepage-login-card p {
     margin-bottom: 2rem;
-    color: var(--text-light);
+    color: var(--text-secondary);
     font-size: 0.95rem;
     flex-grow: 1; /* Make paragraphs take space to align buttons */
 }
@@ -740,12 +822,12 @@ table tbody tr:last-child td {
 }
 
 .popup-notification {
-    background: var(--glass-bg, rgba(255, 255, 255, 0.75));
+    background: var(--glass-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-radius: var(--border-radius-md); /* Consistent radius */
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
     padding: 16px 20px;
     transition: all 300ms ease; /* Use variable if defined, or direct value */
     pointer-events: auto; /* Notifications are interactive */
@@ -805,12 +887,12 @@ table tbody tr:last-child td {
     font-weight: 600;
     font-size: 1rem; /* Standardized size */
     margin-bottom: 5px;
-    color: var(--text, #1e293b);
+    color: var(--text-primary);
 }
 
 .popup-notification .notification-message {
     font-size: 0.875rem; /* Standardized size */
-    color: var(--text-light, #64748b);
+    color: var(--text-secondary);
     word-break: break-word;
 }
 
@@ -828,19 +910,19 @@ table tbody tr:last-child td {
     border: none; /* Remove border if any */
     border-radius: 50%;
     transition: background 0.2s;
-    color: var(--text-light); /* Icon color */
+    color: var(--text-secondary); /* Icon color */
     font-size: 14px; /* For the '✕' character */
 }
 
 .popup-notification .notification-close:hover {
     background: rgba(0, 0, 0, 0.15);
-    color: var(--text);
+    color: var(--text-primary);
 }
 
-.popup-notification.success { border-left: 4px solid var(--success, #10b981); }
-.popup-notification.error { border-left: 4px solid var(--error, #ef4444); }
-.popup-notification.warning { border-left: 4px solid var(--warning, #f59e0b); }
-.popup-notification.info { border-left: 4px solid var(--info, #3b82f6); } /* Changed from primary to info */
+.popup-notification.success { border-left: 4px solid var(--success); }
+.popup-notification.error { border-left: 4px solid var(--error); }
+.popup-notification.warning { border-left: 4px solid var(--warning); }
+.popup-notification.info { border-left: 4px solid var(--info); }
 
 @keyframes popup-progress-animation {
     from { transform: scaleX(1); }
@@ -854,7 +936,7 @@ table tbody tr:last-child td {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.6); /* Darker backdrop for modals */
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     display: flex;
@@ -870,12 +952,12 @@ table tbody tr:last-child td {
 }
 
 .popup-notification-modal-content {
-    background: var(--glass-bg, rgba(255, 255, 255, 0.75));
+    background: var(--glass-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-radius: var(--border-radius-md); /* Consistent radius */
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow); /* Consistent shadow */
     max-width: 400px;
     width: calc(100% - 2rem); /* Responsive width with padding */
     transform: translateY(-20px) scale(0.95); /* Initial state for animation */
@@ -893,13 +975,13 @@ table tbody tr:last-child td {
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem; /* Adjusted padding */
-    border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+    border-bottom: 1px solid var(--glass-border-color);
 }
 
 .popup-notification-modal-header h3 {
     margin: 0;
     font-size: 1.25rem; /* Standardized size */
-    color: var(--primary); /* Use primary color */
+    color: var(--text-heading); /* Modal title uses heading color */
 }
 
 .popup-notification-modal-close {
@@ -907,7 +989,7 @@ table tbody tr:last-child td {
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: var(--text-light, #64748b);
+    color: var(--text-secondary);
     padding: 0.25rem; /* Add padding for easier click */
     line-height: 1;
 }
@@ -918,7 +1000,7 @@ table tbody tr:last-child td {
 
 .popup-notification-modal-body {
     padding: 1.5rem; /* Adjusted padding */
-    color: var(--text, #1e293b);
+    color: var(--text-primary);
     font-size: 1rem;
     line-height: 1.6;
 }
@@ -928,7 +1010,7 @@ table tbody tr:last-child td {
     justify-content: flex-end;
     gap: 10px;
     padding: 1rem 1.5rem; /* Adjusted padding */
-    border-top: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+    border-top: 1px solid var(--glass-border-color);
 }
 
 .popup-notification-modal-btn {
@@ -943,25 +1025,25 @@ table tbody tr:last-child td {
 }
 
 .popup-notification-modal-btn-cancel {
-    background: var(--input-bg, rgba(255, 255, 255, 0.8));
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
-    color: var(--text, #1e293b);
+    background: var(--bg-surface-alt); /* Cancel button with alt surface */
+    border: 1px solid var(--border-color-subtle);
+    color: var(--text-primary);
 }
 .popup-notification-modal-btn-cancel:hover {
-    background: rgba(0,0,0,0.05); /* Subtle hover for cancel */
+    background: var(--border-color-subtle); /* Darken on hover */
 }
 body.dark-mode .popup-notification-modal-btn-cancel:hover {
-    background: rgba(255,255,255,0.05);
+    background: var(--border-color-strong); /* Darken on hover for dark mode */
 }
 
 
 .popup-notification-modal-btn-confirm {
-    background: linear-gradient(135deg, var(--primary, #4f46e5), var(--secondary, #06b6d4));
+    background: var(--primary); /* Confirm button uses primary */
     border: none;
-    color: white;
+    color: var(--text-on-primary);
 }
 .popup-notification-modal-btn-confirm:hover {
-    background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
+    background: var(--primary-dark);
     transform: translateY(-2px); /* Subtle lift */
 }
 

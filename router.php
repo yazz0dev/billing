@@ -180,39 +180,30 @@ if ($relative_path === '/notification.php' || strpos($relative_path, '/notificat
 }
 
 // --- Static Asset Routes (CSS, JS, Images etc.) ---
-// It's generally better to let Apache/Nginx handle static files directly for performance.
-// If using PHP to serve, ensure paths are secure.
-if (preg_match('/^\/global\.css$/', $relative_path)) {
-    if (serve_static_file(__DIR__ . '/global.css')) exit;
-} elseif (preg_match('/^\/js\/(.+)$/', $relative_path, $matches)) {
-    if (serve_static_file(__DIR__ . '/js/' . $matches[1])) exit;
-} elseif (preg_match('/^\/ui\/(.+)$/', $relative_path, $matches)) {
-    // Serve files from /ui like topbar.html if directly requested (though it's included by PHP now)
-    // This might be useful if topbar.html had images or other assets it referenced relatively.
-    // However, it's better to put such assets in a dedicated /assets or /images folder.
-    // For now, this keeps the topbar.html working if its contents are complex.
-    if (serve_static_file(__DIR__ . '/ui/' . $matches[1])) exit;
-}
-
+// Static assets like CSS, JS, and images should ideally be served directly by the webserver (Apache/Nginx)
+// for better performance. PHP-based serving for these has been removed.
+// Ensure your webserver is configured to serve files from /js, /css (if you create it), /images, etc.
+// global.css is expected to be served by the webserver.
 
 // --- Page Routes ---
 $page_routes = [
     // Route path       => [File path, Page Title, Role required (null for public)]
-    '/index'            => [__DIR__ . '/index.php', 'Homepage', null], // Changed .html to .php
-    '/login'            => [__DIR__ . '/login/index.php', 'Login', null], // Changed .html to .php
+    // Route path       => [File path, Page Title, Role required (null for public), Use Layout (true/false)]
+    '/index'            => [__DIR__ . '/index.php', 'Homepage', null, true],
+    '/login'            => [__DIR__ . '/login/index.php', 'Login', null, true], // Login page might have a simpler layout or none
 
-    '/admin'            => [__DIR__ . '/admin/index.php', 'Admin Dashboard', 'admin'], // Changed .html to .php
-    '/admin/dashboard'  => [__DIR__ . '/admin/index.php', 'Admin Dashboard', 'admin'], // Alias or specific file
+    '/admin'            => [__DIR__ . '/admin/index.php', 'Admin Dashboard', 'admin', true],
+    '/admin/dashboard'  => [__DIR__ . '/admin/index.php', 'Admin Dashboard', 'admin', true],
 
-    '/staff'            => [__DIR__ . '/staff/index.php', 'Staff Billing', ['admin', 'staff']], // Changed .html to .php
-    '/staff/billview'   => [__DIR__ . '/staff/billview.php', 'Bill History', ['admin', 'staff']], // Changed .html to .php
+    '/staff'            => [__DIR__ . '/staff/index.php', 'Staff Billing', ['admin', 'staff'], true],
+    '/staff/billview'   => [__DIR__ . '/staff/billview.php', 'Bill History', ['admin', 'staff'], true],
 
-    '/product'          => [__DIR__ . '/product/index.php', 'Product Management', 'admin'], // Changed .html to .php
-    '/logout'           => [__DIR__ . '/logout.php', 'Logout', null],
+    '/product'          => [__DIR__ . '/product/index.php', 'Product Management', 'admin', true],
+    '/logout'           => [__DIR__ . '/logout.php', 'Logout', null, false], // Logout script doesn't need layout
 ];
 
 if (isset($page_routes[$relative_path])) {
-    list($file_to_include, $pageTitle, $required_role) = $page_routes[$relative_path];
+    list($file_to_include, $pageTitle, $required_role, $use_layout) = $page_routes[$relative_path];
     route_log("Matched page route: {$relative_path} -> {$file_to_include}");
 
     // Role-based access control
@@ -237,9 +228,34 @@ if (isset($page_routes[$relative_path])) {
 
     if (file_exists($file_to_include)) {
         if (pathinfo($file_to_include, PATHINFO_EXTENSION) === 'php') {
-            // For .php files like logout.php, include them directly without layout
-            include $file_to_include;
-        } 
+            if ($use_layout) {
+                // Start output buffering to capture page content
+                ob_start();
+                include $file_to_include;
+                $page_content = ob_get_clean();
+
+                // Include header, then page content, then footer
+                if (file_exists(__DIR__ . '/includes/header.php')) {
+                    include __DIR__ . '/includes/header.php';
+                } else {
+                    route_log("Layout Error: header.php not found.");
+                    echo "Error: Header missing."; // Fallback
+                }
+                
+                echo $page_content; // Output the captured content
+
+                if (file_exists(__DIR__ . '/includes/footer.php')) {
+                    include __DIR__ . '/includes/footer.php';
+                } else {
+                    route_log("Layout Error: footer.php not found.");
+                    echo "Error: Footer missing."; // Fallback
+                }
+
+            } else {
+                // For files like logout.php, include them directly without layout
+                include $file_to_include;
+            }
+        }
         exit;
     } else {
         route_log("File not found for route {$relative_path}: {$file_to_include}");
@@ -269,18 +285,26 @@ if (preg_match('/\.html$/', $request_uri)) {
     }
 }
 
-// Continue with normal execution
-return false;
-
 // --- 404 Not Found ---
+// This part is reached if no routes above matched
 route_log("404 Not Found for relative path: {$relative_path}");
 header("HTTP/1.0 404 Not Found");
 $pageTitle = "404 Not Found"; // For the layout
-echo "<div class='container text-center glass mt-5'>";
-echo "<h1 class='page-title' style='color:var(--error);'>404 Not Found</h1>"; // Override H1 style for error
-echo "<p>The page you requested at <code>" . htmlspecialchars($request_uri) . "</code> could not be found.</p>";
-echo "<p>We apologize for the inconvenience.</p>";
+
+// Use the layout for the 404 page as well
+if (file_exists(__DIR__ . '/includes/header.php')) {
+    include __DIR__ . '/includes/header.php';
+}
+
+echo "<div class='container text-center glass mt-5 p-4'>"; // Added padding to glass
+echo "<h1 class='page-title' style='color:var(--error); background:none; -webkit-background-clip:unset; background-clip:unset;'>404 Not Found</h1>"; // Simpler error title
+echo "<p class='text-secondary'>The page you requested at <code>" . htmlspecialchars($request_uri) . "</code> could not be found.</p>";
+echo "<p class='text-secondary'>We apologize for the inconvenience.</p>";
 echo "<a href='{$base_path}/index' class='btn mt-3'>Go to Homepage</a>";
 echo "</div>";
+
+if (file_exists(__DIR__ . '/includes/footer.php')) {
+    include __DIR__ . '/includes/footer.php';
+}
 exit;
 ?>
