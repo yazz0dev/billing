@@ -2,26 +2,90 @@
 <html lang="en">
 <head>
     <title>Product Management</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="/billing/global.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .content-container {
+            flex: 1;
+            padding: 1rem 2rem;
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .product-card {
+            background: var(--glass-bg);
+            border-radius: var(--border-radius-md);
+            padding: 1.5rem;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 20px var(--card-shadow);
+        }
+    </style>
 </head>
 <body>
-    <a href="/billing/">Home</a>
-    <h1>Product Management</h1>
-    <div id="productList"></div>
+    <!-- Include the topbar -->
+    <div id="topbarContainer"></div>
+    
+    <div class="content-container">
+        <h1>Product Management</h1>
+        <div id="productList" class="product-grid"></div>
+    </div>
+    
     <script>
         async function fetchProducts() {
             const response = await fetch('/billing/server.php?action=getProducts');
             const products = await response.json();
             const productList = document.getElementById('productList');
             productList.innerHTML = products.map(product => `
-                <div>
-                    <p>Name: ${product.name}</p>
-                    <p>Price: ${product.price}</p>
-                    <p>Stock: ${product.stock}</p>
+                <div class="product-card">
+                    <h3>${product.name}</h3>
+                    <p><strong>Price:</strong> ₹${product.price.toFixed(2)}</p>
+                    <p><strong>Stock:</strong> ${product.stock} units</p>
                 </div>
             `).join('');
         }
         fetchProducts();
+    </script>
+    
+    <!-- Script to load the topbar -->
+    <script>
+        // Load the topbar
+        fetch('/billing/ui/topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbarContainer').innerHTML = data;
+                
+                // Set user session data for product page
+                window.userSessionData = {
+                    name: '<?php echo isset($_SESSION["username"]) ? $_SESSION["username"] : "Admin"; ?>',
+                    role: '<?php echo isset($_SESSION["user_role"]) ? $_SESSION["user_role"] : "admin"; ?>',
+                    email: 'admin@example.com'
+                };
+                
+                // Execute the topbar script manually
+                const scripts = document.getElementById('topbarContainer').querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    Array.from(script.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.textContent = script.textContent;
+                    document.getElementById('topbarContainer').appendChild(newScript);
+                });
+            })
+            .catch(error => console.error('Error loading topbar:', error));
     </script>
 </body>
 </html>

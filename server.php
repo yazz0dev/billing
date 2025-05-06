@@ -5,6 +5,10 @@ require 'vendor/autoload.php'; // Ensure MongoDB library is loaded
 $client = new MongoDB\Client("mongodb://localhost:27017");
 $db = $client->billing;
 
+// Include notification system
+require_once 'notification.php';
+$notificationSystem = new NotificationSystem();
+
 // Handle requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
@@ -17,6 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'stock' => (int)$_POST['stock']
         ];
         $db->product->insertOne($product);
+        
+        // Create notification for product addition
+        $notificationSystem->saveNotification(
+            "New product added: {$_POST['name']} (₹{$_POST['price']})",
+            'success',
+            'all',
+            7000
+        );
+        
         echo json_encode(['status' => 'success', 'message' => 'Product added successfully']);
     }
 
@@ -37,6 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'total' => $product->price * $quantity,
                 'date' => new MongoDB\BSON\UTCDateTime()
             ]);
+            
+            // Check for low stock and create warning notification
+            if ($product->stock - $quantity <= 10) {
+                $notificationSystem->saveNotification(
+                    "Low stock alert: {$product->name} has only " . ($product->stock - $quantity) . " units left",
+                    'warning',
+                    'admin',
+                    0 // 0 means requires manual dismissal
+                );
+            }
+            
             echo json_encode(['status' => 'success', 'message' => 'Product billed successfully']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Insufficient stock']);
@@ -57,6 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'role' => $_POST['role']
         ];
         $db->users->insertOne($user);
+        
+        // Create notification about new user
+        $notificationSystem->saveNotification(
+            "New {$_POST['role']} user added: {$_POST['username']}",
+            'info',
+            'admin'
+        );
+        
         echo json_encode(['status' => 'success', 'message' => 'User added successfully']);
     }
 
@@ -68,6 +100,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $user = $db->users->findOne(['username' => $username]);
         // Only check password if it exists in the document
         if ($user && isset($user->password) && password_verify($password, $user->password)) {
+            // Start session and store user info
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $_SESSION['user_id'] = (string) $user->_id;
+            $_SESSION['username'] = $user->username;
+            $_SESSION['user_role'] = $user->role;
+            
+            // Create welcome notification
+            $notificationSystem->saveNotification(
+                "Welcome back, {$user->username}! You have successfully logged in.",
+                'success',
+                (string) $user->_id,
+                5000
+            );
+            
             echo json_encode(['status' => 'success', 'role' => $user->role]);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);

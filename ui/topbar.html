@@ -1,0 +1,1124 @@
+<div class="topbar">
+    <div class="topbar-container">
+        <!-- Logo Section -->
+        <div class="topbar-logo">
+            <a href="/billing/">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo-icon">
+                    <path d="M3 3h18v18H3z"></path>
+                    <path d="M3 9h18"></path>
+                    <path d="M9 21V9"></path>
+                </svg>
+                <span>BillSys</span>
+            </a>
+        </div>
+
+        <!-- Navigation Links - Shown based on user role -->
+        <nav class="topbar-nav">
+            <!-- Common Links -->
+            <a href="/billing/" class="topbar-nav-item" data-page="home">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Home</span>
+            </a>
+
+            <!-- Admin Links -->
+            <div class="topbar-nav-item admin-only">
+                <a href="/billing/admin/" data-page="admin-dashboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="topbar-nav-item admin-only">
+                <a href="/billing/product" data-page="products">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                    <span>Products</span>
+                </a>
+            </div>
+
+            <!-- Staff Links -->
+            <div class="topbar-nav-item staff-only">
+                <a href="/billing/staff/" data-page="billing">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                    </svg>
+                    <span>Billing</span>
+                </a>
+            </div>
+            
+            <div class="topbar-nav-item staff-only">
+                <a href="/billing/staff/billview.html" data-page="bill-history">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>Bill History</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Right side user actions -->
+        <div class="topbar-actions">
+            <!-- Theme Toggle -->
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sun">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-moon">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+            
+            <!-- Notifications -->
+            <div class="topbar-notifications">
+                <button class="notification-btn" id="notificationButton" title="Notifications">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-bell">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </button>
+                <!-- Notification Panel (hidden by default) -->
+                <div class="notification-panel" id="notificationPanel">
+                    <div class="notification-header">
+                        <h3>Notifications</h3>
+                        <button class="close-btn" id="closeNotifications">&times;</button>
+                    </div>
+                    <div class="notification-list" id="notificationList">
+                        <!-- Notifications will be populated here -->
+                        <div class="empty-notifications">No new notifications</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User profile with dropdown -->
+            <div class="topbar-user-profile">
+                <button class="user-profile-btn" id="userProfileButton">
+                    <div class="user-avatar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <span class="user-name" id="userName">User</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-chevron">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+
+                <!-- User dropdown menu -->
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-header">
+                        <div class="user-info">
+                            <span class="user-role" id="userRole">Role</span>
+                            <span class="user-email" id="userEmail">user@example.com</span>
+                        </div>
+                    </div>
+                    <div class="user-dropdown-body">
+                        <a href="#" class="dropdown-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-icon">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Profile
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-icon">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                            Settings
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/billing/logout.php" class="dropdown-item text-danger">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-icon">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile menu toggle -->
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile menu (hidden by default) -->
+    <div class="mobile-menu" id="mobileMenu">
+        <!-- Mobile navigation links will be populated by JavaScript -->
+    </div>
+</div>
+
+<style>
+/* Topbar Styles - Using global CSS variables */
+.topbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--topbar-bg, var(--glass-bg));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--topbar-border, var(--glass-border));
+    box-shadow: 0 4px 20px var(--topbar-shadow);
+    padding: 0;
+    font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+    transition: background 0.3s ease, border 0.3s ease;
+}
+
+.topbar-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0.75rem 1.5rem;
+}
+
+/* Logo Section */
+.topbar-logo a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--primary);
+    text-decoration: none;
+    transition: transform 0.2s ease;
+}
+
+.topbar-logo a:hover {
+    transform: scale(1.05);
+}
+
+.logo-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--primary);
+}
+
+/* Navigation Links */
+.topbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.topbar-nav-item a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: var(--border-radius-sm);
+    color: var(--text);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.topbar-nav-item a::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    transform: translateX(-50%);
+    transition: width 0.2s ease;
+}
+
+.topbar-nav-item a:hover {
+    background: rgba(79, 70, 229, 0.1);
+}
+
+.topbar-nav-item a:hover::before {
+    width: 30%;
+}
+
+.topbar-nav-item a.active {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.topbar-nav-item a.active::before {
+    display: none;
+}
+
+.nav-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Right side actions */
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+    background: rgba(79, 70, 229, 0.1);
+}
+
+.icon-sun, .icon-moon {
+    width: 20px;
+    height: 20px;
+    color: var(--text);
+}
+
+.icon-sun {
+    display: block;
+}
+
+.icon-moon {
+    display: none;
+}
+
+body.dark-mode .icon-sun {
+    display: none;
+}
+
+body.dark-mode .icon-moon {
+    display: block;
+}
+
+/* Notifications */
+.topbar-notifications {
+    position: relative;
+}
+
+.notification-btn {
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.notification-btn:hover {
+    background: rgba(79, 70, 229, 0.1);
+}
+
+.icon-bell {
+    width: 20px;
+    height: 20px;
+    color: var(--text);
+}
+
+.notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--error);
+    color: white;
+    font-size: 0.75rem;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 600;
+}
+
+/* Notification Panel */
+.notification-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: 320px;
+    max-height: 400px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 var(--dropdown-shadow);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+}
+
+.notification-panel.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.notification-header h3 {
+    margin: 0;
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+    color: var(--error);
+}
+
+.notification-list {
+    overflow-y: auto;
+    max-height: 350px;
+    padding: 0.5rem;
+}
+
+.empty-notifications {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--text-light);
+}
+
+/* User Profile */
+.topbar-user-profile {
+    position: relative;
+}
+
+.user-profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.2s ease;
+}
+
+.user-profile-btn:hover {
+    background: rgba(79, 70, 229, 0.1);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+}
+
+.user-avatar svg {
+    width: 18px;
+    height: 18px;
+    color: white;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--text);
+    transition: color 0.3s ease;
+}
+
+.icon-chevron {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+    color: var(--text-light);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 var(--dropdown-shadow);
+    width: 260px;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 1001;
+}
+
+.user-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-dropdown-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--glass-border);
+    position: relative;
+}
+
+.user-dropdown-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--primary-dark), transparent);
+    opacity: 0.3;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-role {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.user-email {
+    font-size: 0.875rem;
+    color: var(--text-light);
+}
+
+.user-dropdown-body {
+    padding: 0.75rem;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-sm);
+    color: var(--text);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background: rgba(79, 70, 229, 0.1);
+    transform: translateX(3px);
+}
+
+.dropdown-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--primary);
+}
+
+.dropdown-divider {
+    margin: 0.5rem 0;
+    height: 1px;
+    background: var(--glass-border);
+}
+
+.text-danger {
+    color: var(--error);
+}
+
+/* Mobile menu toggle */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: var(--border-radius-sm);
+    color: var(--text);
+}
+
+.mobile-menu {
+    display: none;
+    padding: 1rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    flex-direction: column;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.mobile-menu .topbar-nav-item {
+    width: 100%;
+}
+
+.mobile-menu .topbar-nav-item a {
+    width: 100%;
+    padding: 0.75rem;
+    justify-content: flex-start;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+    .topbar-nav {
+        display: none;
+    }
+
+    .mobile-menu-toggle {
+        display: block;
+    }
+
+    .mobile-menu.show {
+        display: flex;
+    }
+    
+    .notification-panel {
+        width: 280px;
+        right: -70px;
+    }
+
+    .notification-panel::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        right: 82px;
+        width: 16px;
+        height: 16px;
+        background: var(--glass-bg);
+        transform: rotate(45deg);
+        border-top: 1px solid var(--glass-border);
+        border-left: 1px solid var(--glass-border);
+    }
+}
+
+@media (max-width: 576px) {
+    .user-name {
+        display: none;
+    }
+
+    .icon-chevron {
+        display: none;
+    }
+
+    .topbar-container {
+        padding: 0.75rem 1rem;
+    }
+    
+    .notification-panel {
+        position: fixed;
+        width: 100%;
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+        transform: translateY(100%);
+        border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+    }
+    
+    .notification-panel.show {
+        transform: translateY(0);
+    }
+    
+    .notification-panel::before {
+        display: none;
+    }
+}
+
+/* Role visibility classes */
+.admin-only {
+    display: none;
+}
+
+.staff-only {
+    display: none;
+}
+
+body[data-role="admin"] .admin-only {
+    display: block;
+}
+
+body[data-role="staff"] .staff-only {
+    display: block;
+}
+
+body[data-role="admin"] .staff-only {
+    display: block; /* Admins can see staff links too */
+}
+</style>
+
+<script>
+// Initialize the topbar functionality when the document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('themeToggle');
+    
+    // Check for saved theme preference or respect OS preference
+    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedTheme = localStorage.getItem('theme');
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDarkMode)) {
+        document.body.classList.add('dark-mode');
+    }
+    
+    // Add theme toggle event listener
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            // Save preference
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        });
+    }
+    
+    // User dropdown toggle
+    const userProfileButton = document.getElementById('userProfileButton');
+    const userDropdown = document.getElementById('userDropdown');
+    
+    if (userProfileButton && userDropdown) {
+        userProfileButton.addEventListener('click', function() {
+            userDropdown.classList.toggle('show');
+            const chevron = userProfileButton.querySelector('.icon-chevron');
+            if (chevron) {
+                chevron.style.transform = userDropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0)';
+            }
+        });
+    
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!userProfileButton.contains(event.target) && !userDropdown.contains(event.target)) {
+                userDropdown.classList.remove('show');
+                const chevron = userProfileButton.querySelector('.icon-chevron');
+                if (chevron) {
+                    chevron.style.transform = 'rotate(0)';
+                }
+            }
+        });
+    }
+    
+    // Notification panel toggle
+    const notificationButton = document.getElementById('notificationButton');
+    const notificationPanel = document.getElementById('notificationPanel');
+    const closeNotifications = document.getElementById('closeNotifications');
+    
+    if (notificationButton && notificationPanel) {
+        notificationButton.addEventListener('click', function() {
+            notificationPanel.classList.toggle('show');
+            fetchNotifications();
+        });
+        
+        if (closeNotifications) {
+            closeNotifications.addEventListener('click', function() {
+                notificationPanel.classList.remove('show');
+            });
+        }
+        
+        // Close panel when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!notificationButton.contains(event.target) && !notificationPanel.contains(event.target)) {
+                notificationPanel.classList.remove('show');
+            }
+        });
+    }
+    
+    // Mobile menu toggle
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    
+    if (mobileMenuToggle && mobileMenu) {
+        mobileMenuToggle.addEventListener('click', function() {
+            mobileMenu.classList.toggle('show');
+        });
+        
+        // Clone navigation to mobile menu
+        const navItems = document.querySelectorAll('.topbar-nav-item');
+        mobileMenu.innerHTML = ''; // Clear first
+        navItems.forEach(item => {
+            const clone = item.cloneNode(true);
+            mobileMenu.appendChild(clone);
+        });
+    }
+    
+    // Get user info from session
+    function getUserInfo() {
+        // Try to get session data
+        const userName = document.getElementById('userName');
+        const userRole = document.getElementById('userRole');
+        const userEmail = document.getElementById('userEmail');
+        
+        // Check for session data
+        if (typeof window.userSessionData !== 'undefined') {
+            if (userName) userName.textContent = window.userSessionData.name;
+            if (userRole) userRole.textContent = window.userSessionData.role;
+            if (userEmail) userEmail.textContent = window.userSessionData.email;
+            
+            // Set role attribute on body for conditional display
+            document.body.setAttribute('data-role', window.userSessionData.role);
+        }
+    }
+    
+    // Set active page in navigation
+    function setActivePage() {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.topbar-nav-item a');
+        
+        navLinks.forEach(link => {
+            if (currentPath === link.getAttribute('href') || 
+                (currentPath.endsWith('/') && currentPath.slice(0, -1) === link.getAttribute('href')) ||
+                (currentPath.includes(link.getAttribute('href')) && link.getAttribute('href') !== '/billing/')) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+    
+    // Fetch notifications from server
+    function fetchNotifications() {
+        const notificationList = document.getElementById('notificationList');
+        const notificationBadge = document.getElementById('notificationBadge');
+        
+        // Circuit breaker check
+        if (!notificationCircuitBreaker.canRequest()) {
+            if (notificationList) {
+                notificationList.innerHTML = '<div class="notification-error">Notification system temporarily unavailable</div>';
+            }
+            if (notificationBadge) {
+                notificationBadge.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Show loading state
+        if (notificationList) {
+            notificationList.innerHTML = '<div class="loading-spinner">Loading...</div>';
+        }
+        
+        // Use the popup-notification.js system if available
+        if (window.popupNotification) {
+            const formData = new FormData();
+            formData.append('popup_action', 'get');
+            
+            fetch('/billing/notification.php', {
+                method: 'POST',
+                body: formData,
+                // Add timeout to prevent long-hanging requests
+                signal: AbortSignal.timeout(5000) // 5 second timeout
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}`);
+                }
+                try {
+                    return response.json();
+                } catch (error) {
+                    throw new Error('Invalid JSON response from server');
+                }
+            })
+            .then(result => {
+                if (result && result.status === 'success' && Array.isArray(result.data)) {
+                    // Update badge
+                    if (notificationBadge) {
+                        notificationBadge.textContent = result.data.length;
+                        notificationBadge.style.display = result.data.length > 0 ? 'flex' : 'none';
+                    }
+                    
+                    // Update list
+                    if (notificationList) {
+                        if (result.data.length > 0) {
+                            notificationList.innerHTML = result.data.map(notification => `
+                                <div class="notification-item ${notification.type || 'info'}">
+                                    <div class="notification-icon">
+                                        ${getNotificationIcon(notification.type || 'info')}
+                                    </div>
+                                    <div class="notification-content">
+                                        <div class="notification-message">${notification.message}</div>
+                                        <div class="notification-time">
+                                            ${formatNotificationTime(notification.created_at.$date)}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        } else {
+                            notificationList.innerHTML = '<div class="empty-notifications">No new notifications</div>';
+                        }
+                    }
+                } else {
+                    throw new Error('Invalid data format');
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching notifications:', err);
+                const circuitBroken = notificationCircuitBreaker.recordFailure();
+                
+                if (notificationList) {
+                    if (circuitBroken) {
+                        notificationList.innerHTML = `
+                            <div class="notification-error">
+                                Notification system unavailable. Will retry later.
+                            </div>`;
+                    } else {
+                        notificationList.innerHTML = `
+                            <div class="notification-error">
+                                Could not load notifications. 
+                                <button class="retry-btn" onclick="fetchNotifications()">Retry</button>
+                            </div>`;
+                    }
+                }
+                
+                if (notificationBadge) {
+                    notificationBadge.style.display = 'none';
+                }
+            });
+        } else {
+            // Fallback for no notification system
+            if (notificationBadge) {
+                notificationBadge.style.display = 'none';
+            }
+            if (notificationList) {
+                notificationList.innerHTML = '<div class="empty-notifications">Notification system not available</div>';
+            }
+        }
+    }
+    
+    // Helper function to get notification icon based on type
+    function getNotificationIcon(type) {
+        switch (type) {
+            case 'success':
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>`;
+            case 'error':
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>`;
+            case 'warning':
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>`;
+            case 'info':
+            default:
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>`;
+        }
+    }
+    
+    // Helper function to format notification time
+    function formatNotificationTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000); // Difference in seconds
+        
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+        if (diff < 604800) return `${Math.floor(diff / 86400)} day ago`;
+        
+        // Format as date
+        return date.toLocaleDateString();
+    }
+    
+    // Circuit breaker for notification system
+    const notificationCircuitBreaker = {
+        failures: 0,
+        maxFailures: 3,
+        resetTimeout: 60000, // 1 minute
+        lastFailure: 0,
+        isOpen: false,
+        
+        recordFailure() {
+            const now = Date.now();
+            // Reset failure count if it's been a while
+            if (now - this.lastFailure > this.resetTimeout) {
+                this.failures = 0;
+            }
+            
+            this.failures++;
+            this.lastFailure = now;
+            
+            if (this.failures >= this.maxFailures) {
+                this.isOpen = true;
+                // Try to reset after resetTimeout
+                setTimeout(() => {
+                    this.isOpen = false;
+                    this.failures = 0;
+                }, this.resetTimeout);
+            }
+            
+            return this.isOpen;
+        },
+        
+        canRequest() {
+            return !this.isOpen;
+        }
+    };
+    
+    // Add styles for notification errors and loading
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+        .notification-error {
+            color: var(--error);
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            padding: 1rem;
+            color: var(--text-light);
+        }
+        .loading-spinner:after {
+            content: "";
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        .retry-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 0;
+            font-size: inherit;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .notification-item {
+            display: flex;
+            padding: 0.75rem;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 0.5rem;
+            background: var(--input-bg);
+        }
+        .notification-icon {
+            flex: 0 0 24px;
+            margin-right: 0.75rem;
+        }
+        .notification-content {
+            flex: 1;
+        }
+        .notification-message {
+            margin-bottom: 0.25rem;
+        }
+        .notification-time {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+    `;
+    document.head.appendChild(styleEl);
+    
+    // Initialize topbar
+    getUserInfo();
+    setActivePage();
+    
+    // Check notifications on initial load with error handling
+    const notificationBadge = document.getElementById('notificationBadge');
+    if (notificationBadge && window.popupNotification) {
+        // Set initial state
+        notificationBadge.style.display = 'none';
+        
+        // Delay first fetch to ensure page is loaded
+        setTimeout(() => {
+            try {
+                if (notificationCircuitBreaker.canRequest()) {
+                    const formData = new FormData();
+                    formData.append('popup_action', 'get');
+                    
+                    fetch('/billing/notification.php', {
+                        method: 'POST',
+                        body: formData,
+                        signal: AbortSignal.timeout(5000)
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.status === 'success' && Array.isArray(result.data)) {
+                            notificationBadge.textContent = result.data.length;
+                            notificationBadge.style.display = result.data.length > 0 ? 'flex' : 'none';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error checking notifications:', err);
+                        notificationCircuitBreaker.recordFailure();
+                    });
+                }
+            } catch (err) {
+                console.error('Notification initialization error:', err);
+            }
+        }, 2000); // Increased timeout for better reliability
+    }
+});
+</script>

@@ -2,47 +2,138 @@
 <html lang="en">
 <head>
     <title>Admin Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="/billing/global.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .content-container {
+            flex: 1;
+            padding: 1rem 2rem;
+        }
+        
+        section {
+            margin-bottom: 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: var(--border-radius-md);
+            padding: 1.5rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        #salesData {
+            margin-top: 1.5rem;
+            background: var(--input-bg);
+            padding: 1.5rem;
+            border-radius: var(--border-radius-sm);
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
 </head>
 <body>
-    <nav>
-        <a href="/billing/">Home</a>
-        <a href="/billing/product">Products</a>
-        <a href="/billing/admin/">Dashboard</a>
-    </nav>
-    <h1>Admin Dashboard</h1>
-    <section>
-        <h2>Manage Products</h2>
-        <form id="addProductForm">
-            <input type="text" name="name" placeholder="Product Name" required>
-            <input type="number" name="price" placeholder="Price" required>
-            <input type="number" name="stock" placeholder="Stock" required>
-            <button type="submit">Add Product</button>
-        </form>
-    </section>
-    <section>
-        <h2>Sales</h2>
-        <button id="viewSales">View Sales</button>
-        <div id="salesData"></div>
-    </section>
+    <!-- Include the topbar -->
+    <div id="topbarContainer"></div>
+    
+    <div class="content-container">
+        <h1>Admin Dashboard</h1>
+        <section>
+            <h2>Manage Products</h2>
+            <form id="addProductForm">
+                <input type="text" name="name" placeholder="Product Name" required>
+                <input type="number" name="price" placeholder="Price" step="0.01" min="0" required>
+                <input type="number" name="stock" placeholder="Stock" min="0" required>
+                <button type="submit">Add Product</button>
+            </form>
+        </section>
+        <section>
+            <h2>Sales</h2>
+            <button id="viewSales">View Sales</button>
+            <div id="salesData"></div>
+        </section>
+    </div>
+    
+    <!-- Include popup notification script -->
+    <script src="/billing/js/popup-notification.js"></script>
+    
     <script>
         document.getElementById('addProductForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             formData.append('action', 'addProduct');
-            const response = await fetch('/billing/server.php', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            alert(result.message);
+            
+            try {
+                const response = await fetch('/billing/server.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    window.popupNotification.success(result.message, "Product Added");
+                    e.target.reset(); // Clear form on success
+                } else {
+                    window.popupNotification.error(result.message || "Failed to add product", "Error");
+                }
+            } catch (error) {
+                window.popupNotification.error("An error occurred while processing your request", "Server Error");
+            }
         });
 
         document.getElementById('viewSales').addEventListener('click', async () => {
-            const response = await fetch('/billing/server.php?action=getSales');
-            const sales = await response.json();
-            document.getElementById('salesData').innerText = JSON.stringify(sales, null, 2);
+            try {
+                const response = await fetch('/billing/server.php?action=getSales');
+                const sales = await response.json();
+                
+                if (sales.length === 0) {
+                    document.getElementById('salesData').innerText = "No sales data available.";
+                    window.popupNotification.info("No sales records found", "Sales Data");
+                } else {
+                    document.getElementById('salesData').innerText = JSON.stringify(sales, null, 2);
+                    window.popupNotification.success(`Successfully loaded ${sales.length} sales records`, "Sales Data");
+                }
+            } catch (error) {
+                window.popupNotification.error("Failed to fetch sales data", "Data Error");
+            }
         });
+    </script>
+    
+    <!-- Script to load the topbar -->
+    <script>
+        // Load the topbar
+        fetch('/billing/ui/topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbarContainer').innerHTML = data;
+                
+                // Set user session data for admin page
+                window.userSessionData = {
+                    name: '<?php echo isset($_SESSION["username"]) ? $_SESSION["username"] : "Administrator"; ?>',
+                    role: '<?php echo isset($_SESSION["user_role"]) ? $_SESSION["user_role"] : "admin"; ?>',
+                    email: 'admin@example.com'
+                };
+                
+                // Execute the topbar script manually
+                const scripts = document.getElementById('topbarContainer').querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    Array.from(script.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.textContent = script.textContent;
+                    document.getElementById('topbarContainer').appendChild(newScript);
+                });
+            })
+            .catch(error => console.error('Error loading topbar:', error));
     </script>
 </body>
 </html>

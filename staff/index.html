@@ -1,50 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supermarket Billing</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="/billing/global.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .content-container {
+            flex: 1;
+            padding: 1rem 2rem;
+        }
+    </style>
 </head>
 <body>
-    <nav>
-        <a href="/billing/">Home</a>
-        <a href="/billing/staff/bill" class="active">Billing</a>
-        <a href="/billing/staff/billview.html">Bill History</a>
-    </nav>
-    <h1>Supermarket Billing</h1>
-    <section class="glass">
-        <h2>Add Products to Cart</h2>
-        <form id="addToCartForm" autocomplete="off">
-            <input type="text" id="productSearch" placeholder="Search product by name..." required list="productListDatalist">
-            <datalist id="productListDatalist"></datalist>
-            <input type="number" id="quantityInput" placeholder="Quantity" min="1" value="1" required>
-            <button type="submit">Add to Cart</button>
-        </form>
-    </section>
-    <section class="glass">
-        <h2>Cart</h2>
-        <div id="cartContainer">
-            <table id="cartTable">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Unit Price</th>
-                        <th>Quantity</th>
-                        <th>Subtotal</th>
-                        <th>Remove</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Cart items will be rendered here -->
-                </tbody>
-            </table>
-            <div style="text-align:right; margin-top:1rem;">
-                <span style="font-size:1.2rem;font-weight:600;">Total: ₹<span id="cartTotal">0.00</span></span>
+    <!-- Include the topbar -->
+    <div id="topbarContainer"></div>
+    
+    <div class="content-container">
+        <h1>Supermarket Billing</h1>
+        <section class="glass">
+            <h2>Add Products to Cart</h2>
+            <form id="addToCartForm" autocomplete="off">
+                <div class="flex gap-2">
+                    <input type="text" id="productSearch" placeholder="Search product by name..." required list="productListDatalist">
+                    <datalist id="productListDatalist"></datalist>
+                    <input type="number" id="quantityInput" placeholder="Quantity" min="1" value="1" required>
+                    <button type="submit">Add to Cart</button>
+                </div>
+            </form>
+        </section>
+        <section class="glass">
+            <h2>Cart</h2>
+            <div id="cartContainer">
+                <table id="cartTable">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Unit Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Cart items will be rendered here -->
+                    </tbody>
+                </table>
+                <div class="text-right mt-3">
+                    <span style="font-size:1.2rem;font-weight:600;">Total: ₹<span id="cartTotal">0.00</span></span>
+                </div>
+                <div class="text-right mt-3">
+                    <button id="checkoutBtn" class="btn" disabled>Checkout & Print Bill</button>
+                </div>
             </div>
-            <div style="text-align:right; margin-top:1.5rem;">
-                <button id="checkoutBtn" class="btn" disabled>Checkout & Print Bill</button>
-            </div>
-        </div>
-    </section>
+        </section>
+    </div>
+    
+    <!-- Include popup notification script -->
+    <script src="/billing/js/popup-notification.js"></script>
+    
     <script>
         // --- Product search and cart logic ---
         let products = [];
@@ -72,21 +93,22 @@
             const qty = parseInt(document.getElementById('quantityInput').value, 10);
             const product = findProductByName(name);
             if (!product) {
-                alert('Product not found!');
+                window.popupNotification.error(`Product "${name}" not found!`, "Error");
                 return;
             }
             if (qty < 1 || qty > product.stock) {
-                alert('Invalid quantity. Available stock: ' + product.stock);
+                window.popupNotification.warning(`Invalid quantity. Available stock: ${product.stock}`, "Stock Warning");
                 return;
             }
             // Check if already in cart
             const existing = cart.find(item => item._id.$oid === product._id.$oid);
             if (existing) {
                 if (existing.quantity + qty > product.stock) {
-                    alert('Exceeds available stock!');
+                    window.popupNotification.error("Exceeds available stock!", "Stock Error");
                     return;
                 }
                 existing.quantity += qty;
+                window.popupNotification.info(`Updated quantity of "${product.name}" to ${existing.quantity}`, "Cart Updated");
             } else {
                 cart.push({
                     _id: product._id,
@@ -95,9 +117,11 @@
                     stock: product.stock,
                     quantity: qty
                 });
+                window.popupNotification.success(`Added "${product.name}" to cart`, "Product Added");
             }
             renderCart();
             this.reset();
+            document.getElementById('quantityInput').value = 1;
         });
 
         // Render cart table
@@ -114,7 +138,7 @@
                     <td>₹${item.price.toFixed(2)}</td>
                     <td>${item.quantity}</td>
                     <td>₹${subtotal.toFixed(2)}</td>
-                    <td><button onclick="removeFromCart(${idx})" style="background:#ef4444;">Remove</button></td>
+                    <td><button onclick="removeFromCart(${idx})" class="btn" style="background:var(--error);padding:0.5rem 1rem;font-size:0.9rem;">Remove</button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -124,39 +148,96 @@
 
         // Remove from cart
         window.removeFromCart = function(idx) {
-            cart.splice(idx, 1);
-            renderCart();
+            const removedItem = cart[idx];
+            window.confirmNotification(
+                `Are you sure you want to remove "${removedItem.name}" from the cart?`,
+                function() {
+                    cart.splice(idx, 1);
+                    renderCart();
+                    window.popupNotification.info(`Removed "${removedItem.name}" from cart`, "Item Removed");
+                }
+            );
         };
 
         // Checkout and bill all items
         document.getElementById('checkoutBtn').addEventListener('click', async function() {
             if (!cart.length) return;
-            let errors = [];
-            for (const item of cart) {
-                const formData = new FormData();
-                formData.append('action', 'billProduct');
-                formData.append('productId', item._id.$oid);
-                formData.append('quantity', item.quantity);
-                const res = await fetch('/billing/server.php', { method: 'POST', body: formData });
-                const result = await res.json();
-                if (result.status !== 'success') {
-                    errors.push(`${item.name}: ${result.message}`);
+            
+            window.confirmNotification(
+                `Are you sure you want to checkout with ${cart.length} items for a total of ₹${document.getElementById('cartTotal').innerText}?`,
+                async function() {
+                    let errors = [];
+                    for (const item of cart) {
+                        const formData = new FormData();
+                        formData.append('action', 'billProduct');
+                        formData.append('productId', item._id.$oid);
+                        formData.append('quantity', item.quantity);
+                        const res = await fetch('/billing/server.php', { method: 'POST', body: formData });
+                        const result = await res.json();
+                        if (result.status !== 'success') {
+                            errors.push(`${item.name}: ${result.message}`);
+                        }
+                    }
+                    if (errors.length) {
+                        window.popupNotification.error(
+                            `Some items could not be billed:<br>${errors.join('<br>')}`,
+                            "Billing Error",
+                            10000
+                        );
+                    } else {
+                        window.popupNotification.success(
+                            `Successfully billed ${cart.length} items for a total of ₹${document.getElementById('cartTotal').innerText}`,
+                            "Billing Successful"
+                        );
+                        window.print(); // Print the bill
+                    }
+                    cart = [];
+                    renderCart();
+                    fetchProducts(); // Refresh stock
                 }
-            }
-            if (errors.length) {
-                alert('Some items could not be billed:\n' + errors.join('\n'));
-            } else {
-                alert('Billing successful!');
-                window.print(); // Print the bill
-            }
-            cart = [];
-            renderCart();
-            fetchProducts(); // Refresh stock
+            );
         });
 
         // On page load
         fetchProducts();
         renderCart();
+        
+        // Show welcome message after a slight delay
+        setTimeout(() => {
+            window.popupNotification.info(
+                "Welcome to the Billing System. Add products to cart and checkout to generate a bill.",
+                "Welcome"
+            );
+        }, 1000);
+    </script>
+    
+    <!-- Script to load the topbar -->
+    <script>
+        // Load the topbar
+        fetch('/billing/ui/topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbarContainer').innerHTML = data;
+                
+                // Set user session data for staff page
+                window.userSessionData = {
+                    name: '<?php echo isset($_SESSION["username"]) ? $_SESSION["username"] : "Staff"; ?>',
+                    role: '<?php echo isset($_SESSION["user_role"]) ? $_SESSION["user_role"] : "staff"; ?>',
+                    email: 'staff@example.com'
+                };
+                
+                // Execute the topbar script manually
+                const scripts = document.getElementById('topbarContainer').querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    Array.from(script.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.textContent = script.textContent;
+                    document.getElementById('topbarContainer').appendChild(newScript);
+                });
+            })
+            .catch(error => console.error('Error loading topbar:', error));
     </script>
 </body>
 </html>

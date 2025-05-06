@@ -1,31 +1,241 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Supermarket Billing System</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="/billing/global.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .content-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-form {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-form::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            opacity: 0.8;
+            z-index: -1;
+        }
+        
+        .login-form::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            right: -10px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, var(--secondary), var(--primary));
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            opacity: 0.8;
+            z-index: -1;
+        }
+        
+        .form-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+        
+        .icon-input {
+            position: relative;
+        }
+        
+        .icon-input input {
+            padding-left: 2.8rem;
+        }
+        
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 1rem;
+            transform: translateY(-50%);
+            color: var(--primary);
+            width: 18px;
+            height: 18px;
+        }
+        
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            font-weight: 500;
+        }
+        
+        .back-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            padding: 0.75rem;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <a href="/billing/">Home</a>
-    <h1>Login</h1>
-    <form id="loginForm">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <select name="role" required>
-            <option value="admin">Admin</option>
-            <option value="staff">Staff</option>
-        </select>
-        <button type="submit">Login</button>
-    </form>
+    <!-- Include the topbar -->
+    <div id="topbarContainer"></div>
+    
+    <div class="content-container">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>Welcome Back</h1>
+                <p>Login to access your billing dashboard</p>
+            </div>
+            
+            <div class="error-message" id="errorMessage">
+                Invalid username or password. Please try again.
+            </div>
+            
+            <form id="loginForm" class="login-form glass">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="icon-input">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="icon-input">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">Login</button>
+            </form>
+            
+            <a href="/billing/" class="back-link">
+                <svg class="back-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Home
+            </a>
+        </div>
+    </div>
+
     <script>
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const role = e.target.role.value;
-            if (role === 'admin') {
-                window.location.href = '/billing/admin/';
-            } else if (role === 'staff') {
-                window.location.href = '/billing/staff/';
+            
+            const formData = new FormData(e.target);
+            formData.append('action', 'authenticateUser');
+            
+            try {
+                const response = await fetch('/billing/server.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Set the URL based on the user role
+                    if (result.role === 'admin') {
+                        window.location.href = '/billing/admin/';
+                    } else if (result.role === 'staff') {
+                        window.location.href = '/billing/staff/';
+                    }
+                } else {
+                    // Show error message
+                    document.getElementById('errorMessage').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('errorMessage').style.display = 'block';
             }
         });
+        
+        // Auto-select role from URL parameter if available
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const role = urlParams.get('role');
+            
+            if (role && (role === 'admin' || role === 'staff')) {
+                document.getElementById('role').value = role;
+            }
+        });
+    </script>
+    
+    <!-- Script to load the topbar -->
+    <script>
+        // Load the topbar
+        fetch('/billing/ui/topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbarContainer').innerHTML = data;
+                
+                // Set user session data for login page (guest)
+                window.userSessionData = {
+                    name: 'Guest',
+                    role: 'guest',
+                    email: 'guest@example.com'
+                };
+                
+                // Execute the topbar script manually
+                const scripts = document.getElementById('topbarContainer').querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    Array.from(script.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.textContent = script.textContent;
+                    document.getElementById('topbarContainer').appendChild(newScript);
+                });
+            })
+            .catch(error => console.error('Error loading topbar:', error));
     </script>
 </body>
 </html>
