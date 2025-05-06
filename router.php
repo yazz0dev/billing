@@ -7,6 +7,25 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1); // For development, 0 for production
 
+// Ensure vendor autoload is loaded
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+} else {
+    // This is a critical failure for the entire application.
+    $errorMessage = "CRITICAL: vendor/autoload.php not found. Application cannot start. Please run 'composer install'.";
+    error_log($errorMessage);
+    http_response_code(500); // Internal Server Error
+    echo "<h1>Server Configuration Error</h1>";
+    echo "<p>A critical application component (autoloader) is missing. This typically means dependencies are not installed.</p>";
+    echo "<p>If you are the administrator, please run <code>composer install</code> in the application directory.</p>";
+    echo "<p>Otherwise, please contact the site administrator and report this issue.</p>";
+    // Provide path detail for easier debugging if display_errors is on (though it might be caught by error_reporting already)
+    if (ini_get('display_errors')) {
+        echo "<p><small>Missing file: " . htmlspecialchars(__DIR__ . '/vendor/autoload.php') . "</small></p>";
+    }
+    exit;
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

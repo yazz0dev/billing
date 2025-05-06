@@ -1,6 +1,34 @@
 <?php
 //billing/server.php`** (Minor improvements, notification titles)
 
+// Global error handling for fatal errors
+register_shutdown_function(function () {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR])) {
+        // If no headers sent, and it's likely an API call, send JSON error
+        if (!headers_sent() && (isset($_SERVER['HTTP_ACCEPT']) && strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') !== false || (isset($_GET['action']) || isset($_POST['action'])))) {
+            header('Content-Type: application/json');
+            http_response_code(500); // Ensure a 500 status code for fatal errors
+            echo json_encode([
+                'success' => false,
+                'status' => 'error', // Keep status for compatibility if other parts use it
+                'message' => 'A critical server error occurred.',
+                'error_details' => [
+                    'type' => $error['type'],
+                    'message' => $error['message'],
+                    'file' => basename($error['file']), // Keep it brief for client
+                    'line' => $error['line']
+                ]
+            ]);
+        }
+        // Log the full error to the server's error log
+        error_log(sprintf("Fatal error: type %d, Message: %s, File: %s, Line: %d", $error['type'], $error['message'], $error['file'], $error['line']));
+    }
+});
+
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Do not display errors in output, log them instead
+
 // Ensure vendor autoload is loaded if not already by router
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
@@ -77,7 +105,6 @@ try {
     }
 }
 
-
 // Start session if not already started (for user context in notifications)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -85,9 +112,159 @@ if (session_status() === PHP_SESSION_NONE) {
 $currentUserId = isset($_SESSION['user_id']) ? (string)$_SESSION['user_id'] : 'guest_user_' . session_id();
 $currentUserRole = isset($_SESSION['user_role']) ? (string)$_SESSION['user_role'] : 'guest';
 
-
 // --- Request Handling ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+// First, check for JSON POST requests with action in query string
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && 
+    isset($_GET['action']) && 
+    isset($_SERVER['CONTENT_TYPE']) && 
+    strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
+    
+    header('Content-Type: application/json'); // Ensure JSON response
+    $action = $_GET['action'];
+    $response = ['success' => false, 'message' => 'Invalid action or insufficient data.']; // Default error
+    
+    // Parse the JSON input
+    $jsonInput = file_get_contents('php://input');
+    $data = json_decode($jsonInput, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("Invalid JSON received: " . json_last_error_msg() . " - Input: " . $jsonInput);
+        echo json_encode(['success' => false, 'message' => 'Invalid JSON payload: ' . json_last_error_msg()]);
+        exit;
+    }
+    
+    // Ensure DB is available
+    if (!$db || !$notificationSystem) {
+        error_log("DB or NotificationSystem not available for JSON POST action: " . $action);
+        echo json_encode(['success' => false, 'message' => 'Server error: Database or notification system not available.']);
+        exit;
+    }
+    
+    try {
+        switch ($action) {
+            case 'deleteProduct':
+                try {
+                    if (isset($data['id'])) {
+                        $productIdStr = $data['id'];
+                        $query = [];
+                        
+                        error_log("Attempting to delete product with ID string: " . $productIdStr);
+                        
+                        $isValidObjectId = false;
+                        try {
+                            $mongoId = new MongoDB\BSON\ObjectId($productIdStr);
+                            $isValidObjectId = true;
+                        } catch (MongoDB\Exception\InvalidArgumentException $e) {
+                            error_log("InvalidArgumentException when validating ObjectId for delete: " . $productIdStr . " - " . $e->getMessage());
+                        } catch (Exception $e) { // Catch other potential errors
+                            error_log("Generic Exception when validating ObjectId for delete: " . $productIdStr . " - " . $e->getMessage());
+                        }
+
+                        if ($isValidObjectId) {
+                            $query['_id'] = $mongoId;
+                            error_log("Using ObjectId query for delete: _id = ObjectId('" . $productIdStr . "')");
+                        } else {
+                            error_log("Invalid ObjectId string for delete: " . $productIdStr);
+                            $response = ['success' => false, 'message' => 'Invalid Product ID format for deletion.'];
+                            break; 
+                        }
+                        
+                        $product = $db->products->findOne($query);
+                        if ($product) {
+                            $productName = isset($product->name) ? $product->name : "Unknown";
+                            error_log("Found product to delete: " . $productName . " (ID: " . $productIdStr . ")");
+                            
+                            $result = $db->products->deleteOne($query);
+                            
+                            if ($result->getDeletedCount() > 0) {
+                                error_log("Successfully deleted product: " . $productName);
+                                $response = ['success' => true, 'message' => 'Product deleted successfully.'];
+                            } else {
+                                error_log("Delete operation executed but no documents were deleted for ID: " . $productIdStr);
+                                $response = ['success' => false, 'message' => 'Product not deleted - operation failed or product already deleted.'];
+                            }
+                        } else {
+                            error_log("No product found with the provided ObjectId for delete: " . $productIdStr);
+                            $response = ['success' => false, 'message' => 'Product not found with the given ID.'];
+                        }
+                    } else {
+                        error_log("Delete request missing product ID in JSON data");
+                        $response = ['success' => false, 'message' => 'Missing product ID.'];
+                    }
+                } catch (MongoDB\Driver\Exception\Exception $e) {
+                    error_log("MongoDB error during product deletion (ID: ".(isset($data['id']) ? $data['id'] : 'N/A')."): " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                    $response = ['success' => false, 'message' => 'Database error during deletion. Check server logs.'];
+                } catch (Exception $e) {
+                    error_log("General error during product deletion (ID: ".(isset($data['id']) ? $data['id'] : 'N/A')."): " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                    $response = ['success' => false, 'message' => 'Server error during deletion. Check server logs.'];
+                }
+                break;
+            
+            case 'updateProduct':
+                try {
+                    if (isset($data['id'], $data['name'], $data['price'], $data['stock'])) {
+                        $productIdStr = $data['id'];
+                        $name = filter_var($data['name'], FILTER_SANITIZE_STRING);
+                        $price = (float)$data['price'];
+                        $stock = (int)$data['stock'];
+
+                        $isValidObjectId = false;
+                        $mongoId = null;
+                        try {
+                            $mongoId = new MongoDB\BSON\ObjectId($productIdStr);
+                            $isValidObjectId = true;
+                        } catch (MongoDB\Exception\InvalidArgumentException $e) {
+                            error_log("InvalidArgumentException when validating ObjectId for update: " . $productIdStr . " - " . $e->getMessage());
+                        } catch (Exception $e) {
+                            error_log("Generic Exception when validating ObjectId for update: " . $productIdStr . " - " . $e->getMessage());
+                        }
+
+                        if (!$isValidObjectId) {
+                            $response = ['success' => false, 'message' => 'Invalid Product ID format for update.'];
+                            break;
+                        }
+                        if (empty($name) || $price < 0 || $stock < 0) {
+                             $response = ['success' => false, 'message' => "Invalid product data provided for update."];
+                             break;
+                        }
+
+                        $query = ['_id' => $mongoId];
+                        $update = ['$set' => ['name' => $name, 'price' => $price, 'stock' => $stock]];
+                        
+                        $result = $db->products->updateOne($query, $update);
+
+                        if ($result->getMatchedCount() > 0) {
+                            if ($result->getModifiedCount() > 0) {
+                                $response = ['success' => true, 'message' => 'Product updated successfully.'];
+                            } else {
+                                $response = ['success' => true, 'message' => 'Product data was the same, no changes made.'];
+                            }
+                        } else {
+                            $response = ['success' => false, 'message' => 'Product not found for update.'];
+                        }
+                    } else {
+                        $response = ['success' => false, 'message' => 'Missing data for product update.'];
+                    }
+                } catch (MongoDB\Driver\Exception\Exception $e) {
+                    error_log("MongoDB error during product update (ID: ".(isset($data['id']) ? $data['id'] : 'N/A')."): " . $e->getMessage());
+                    $response = ['success' => false, 'message' => 'Database error during update.'];
+                } catch (Exception $e) {
+                    error_log("General error during product update (ID: ".(isset($data['id']) ? $data['id'] : 'N/A')."): " . $e->getMessage());
+                    $response = ['success' => false, 'message' => 'Server error during update.'];
+                }
+                break;
+                
+            // Add other JSON-based actions here
+        }
+    } catch (Exception $e) { // Catch errors from json_decode or other early issues
+        error_log("Server.php JSON POST Error (action: " . $action . "): " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+        $response = ['success' => false, 'message' => 'A server error occurred: ' . $e->getMessage()];
+    }
+    
+    echo json_encode($response);
+    exit;
+    
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json'); // Ensure JSON response for POST actions
     $action = $_POST['action'];
     $response = ['status' => 'error', 'message' => 'Invalid action or insufficient data.']; // Default error
@@ -114,29 +291,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $db->products->insertOne($product);
                     $notificationSystem->saveNotification(
                         "New product '{$product['name']}' (₹{$product['price']}) added.",
-                        'success', 'all', 7000, "Product Added"
+                        'success', 
+                        'staff', // Changed target from 'all' to 'staff'
+                        7000, 
+                        "Product Added"
                     );
                     $response = ['status' => 'success', 'message' => 'Product added successfully.'];
                 }
                 break;
 
             case 'billProduct':
-                if (isset($_POST['productId'], $_POST['quantity']) && MongoDB\BSON\ObjectId::isValid($_POST['productId'])) {
-                    $productId = new MongoDB\BSON\ObjectId($_POST['productId']);
+                $productIdStr = $_POST['productId'] ?? null;
+                $isValidObjectId = false;
+                $mongoProductId = null;
+
+                if ($productIdStr) {
+                    try {
+                        $mongoProductId = new MongoDB\BSON\ObjectId($productIdStr);
+                        $isValidObjectId = true;
+                    } catch (MongoDB\Exception\InvalidArgumentException $e) {
+                        error_log("InvalidArgumentException when validating ObjectId for billProduct: " . $productIdStr . " - " . $e->getMessage());
+                    } catch (Exception $e) {
+                        error_log("Generic Exception when validating ObjectId for billProduct: " . $productIdStr . " - " . $e->getMessage());
+                    }
+                }
+
+                if (isset($_POST['quantity']) && $isValidObjectId) {
                     $quantity = (int)$_POST['quantity'];
                     if ($quantity <= 0) {
                         $response['message'] = "Invalid quantity.";
                         break;
                     }
 
-                    $product = $db->products->findOne(['_id' => $productId]);
+                    $product = $db->products->findOne(['_id' => $mongoProductId]);
                     if ($product && $product->stock >= $quantity) {
                         $db->products->updateOne(
-                            ['_id' => $productId],
+                            ['_id' => $mongoProductId],
                             ['$inc' => ['stock' => -$quantity]]
                         );
                         $db->bill->insertOne([
-                            'productId' => $productId,
+                            'productId' => $mongoProductId,
                             'quantity' => $quantity,
                             'priceAtSale' => $product->price, // Store price at time of sale
                             'total' => $product->price * $quantity,
@@ -157,6 +351,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 'error', 'admin', 0, "Out of Stock"
                             );
                         }
+                        $notificationSystem->saveNotification(
+                            "New bill: {$quantity} of '{$product->name}' sold.",
+                            'info', // Or 'success'
+                            'admin',  // Target admin
+                            7000,
+                            "Bill Processed"
+                        );
                         $response = ['status' => 'success', 'message' => "'{$product->name}' billed successfully."];
                     } else {
                         $response['message'] = $product ? 'Insufficient stock for ' . $product->name . '.' : 'Product not found.';
@@ -172,10 +373,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             case 'authenticateUser':
                 if (isset($_POST['username'], $_POST['password'])) {
                     $username = filter_var(trim($_POST['username']), FILTER_SANITIZE_STRING);
-                    $password = $_POST['password'];
+                    $password = $_POST['password']; // Plain text from form
 
                     $user = $db->user->findOne(['username' => $username]);
-                    if ($user && isset($user->password) && password_verify($password, $user->password)) {
+
+                    // SECURITY WARNING: This is for plain-text password comparison.
+                    // In a production environment, passwords MUST be hashed using password_hash()
+                    // and verified using password_verify().
+                    if ($user && isset($user->password) && $password === $user->password) {
                         $_SESSION['user_id'] = (string) $user->_id;
                         $_SESSION['username'] = $user->username;
                         $_SESSION['user_role'] = $user->role;
@@ -183,7 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                         $notificationSystem->saveNotification(
                             "Welcome back, {$user->username}! You logged in successfully.",
-                            'success', (string)$user->_id, 5000, "Login Successful"
+                            'success', 'all', 5000, "Login Successful"
                         );
                         $response = ['status' => 'success', 'role' => $user->role, 'username' => $user->username];
                     } else {
@@ -207,6 +412,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $response = null; // Default null, will be populated
 
     if (!$db) { // DB check for GET actions
+        error_log("DB not available for GET action: " . $action);
         echo json_encode(['status' => 'error', 'message' => 'Server error: Database not available for GET request.']);
         exit;
     }
@@ -215,7 +421,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         switch ($action) {
             case 'getProducts':
                 $products = $db->products->find([], ['sort' => ['name' => 1]])->toArray();
-                $response = $products; // Direct array response
+                // MongoDB PHP library automatically converts BSON to appropriate PHP types,
+                // including ObjectIds to MongoDB\BSON\ObjectId objects.
+                // json_encode will then typically serialize MongoDB\BSON\ObjectId as {"$oid": "id_string"}
+                $response = $products; 
+                break;
+
+            case 'getProduct': // For editing a single product
+                if (isset($_GET['id'])) {
+                    $productIdStr = $_GET['id'];
+                    $isValidObjectId = false;
+                    $mongoId = null;
+                    try {
+                        $mongoId = new MongoDB\BSON\ObjectId($productIdStr);
+                        $isValidObjectId = true;
+                    } catch (MongoDB\Exception\InvalidArgumentException $e) {
+                        error_log("InvalidArgumentException when validating ObjectId for getProduct: " . $productIdStr . " - " . $e->getMessage());
+                    } catch (Exception $e) {
+                        error_log("Generic Exception when validating ObjectId for getProduct: " . $productIdStr . " - " . $e->getMessage());
+                    }
+
+                    if ($isValidObjectId) {
+                        $query = ['_id' => $mongoId];
+                        $product = $db->products->findOne($query);
+                        if ($product) {
+                            $response = $product; // Send the single product document
+                        } else {
+                            $response = ['status' => 'error', 'message' => 'Product not found.'];
+                            http_response_code(404);
+                        }
+                    } else {
+                        $response = ['status' => 'error', 'message' => 'Invalid Product ID format.'];
+                        http_response_code(400);
+                    }
+                } else {
+                    $response = ['status' => 'error', 'message' => 'Product ID not provided.'];
+                    http_response_code(400);
+                }
                 break;
 
             case 'getBills':
@@ -245,6 +487,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } else { // Should not happen if default error is set for unknown action
         echo json_encode(['status' => 'error', 'message' => 'No data or invalid action.']);
     }
+    exit;
+} else {
+    // Fallback for invalid requests not matching POST or GET with an action
+    header('Content-Type: application/json');
+    http_response_code(400); // Bad Request
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request method or action not specified.']);
     exit;
 }
 

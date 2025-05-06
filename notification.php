@@ -59,6 +59,13 @@ class NotificationSystem {
     public function saveNotification($message, $type = 'info', $target = 'all', $duration = 5000, $title = null) {
         if (!$this->checkDbConnection()) return false; // Or throw exception
 
+        // Only store notifications explicitly targeted to 'admin' or 'staff' roles.
+        // Other notifications are considered transient ("display only") and won't be persisted.
+        if ($target !== 'admin' && $target !== 'staff') {
+            // error_log("NotificationSystem: Notification not stored due to target policy. Target: " . (is_array($target) ? json_encode($target) : $target));
+            return false; // Indicate not stored, won't be picked up by poller.
+        }
+
         $notification = [
             'message' => (string) $message,
             'type' => (string) $type,
@@ -182,20 +189,27 @@ if (basename(__FILE__) == basename($_SERVER["SCRIPT_FILENAME"])) {
                 break;
                 
             case 'save': // This endpoint is more for server-side initiated notifications
-                if (isset($_POST['message']) && (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin')) { // Example: only admin can save
+                // Example: only admin can save via this specific AJAX action.
+                // Other roles might save notifications programmatically from other parts of the backend.
+                if (isset($_POST['message']) && (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin')) {
                     $type = isset($_POST['type']) ? $_POST['type'] : 'info';
                     $target = isset($_POST['target']) ? $_POST['target'] : 'all';
                     $duration = isset($_POST['duration']) ? intval($_POST['duration']) : 5000;
                     $title = isset($_POST['title']) ? $_POST['title'] : null;
-                    
+
                     $id = $notificationSystem->saveNotification($_POST['message'], $type, $target, $duration, $title);
                     if ($id) {
                         $response = ['status' => 'success', 'id' => $id, 'message' => 'Notification saved.'];
                     } else {
-                         $response['message'] = 'Failed to save notification.';
+                        // saveNotification returns false if not stored (e.g., target not admin/staff) or on DB error.
+                        if ($target !== 'admin' && $target !== 'staff') {
+                            $response['message'] = 'Notification not stored: target must be \'admin\' or \'staff\' for persistence.';
+                        } else {
+                            $response['message'] = 'Failed to save notification. Check server logs for database errors.';
+                        }
                     }
                 } else {
-                    $response['message'] = 'Missing message or insufficient permissions.';
+                    $response['message'] = 'Missing message or insufficient permissions to save notification via this endpoint.';
                 }
                 break;
         }

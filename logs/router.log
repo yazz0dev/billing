@@ -1,73 +1,33 @@
-[2025-05-06 12:42:56] Request URI: /billing/index
-[2025-05-06 12:42:56] Normalized relative path: /index
-[2025-05-06 12:42:56] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:42:57] Request URI: /billing/index
-[2025-05-06 12:42:57] Normalized relative path: /index
-[2025-05-06 12:42:57] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:48:02] Request URI: /billing/index
-[2025-05-06 12:48:02] Normalized relative path: /index
-[2025-05-06 12:48:02] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:49:25] Request URI: /billing/index
-[2025-05-06 12:49:25] Normalized relative path: /index
-[2025-05-06 12:49:25] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:53:14] Request URI: /billing/index
-[2025-05-06 12:53:14] Normalized relative path: /index
-[2025-05-06 12:53:14] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:54:51] Request URI: /billing/index
-[2025-05-06 12:54:51] Normalized relative path: /index
-[2025-05-06 12:54:51] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:55:21] Request URI: /billing/index
-[2025-05-06 12:55:21] Normalized relative path: /index
-[2025-05-06 12:55:21] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:56:14] Request URI: /billing/index
-[2025-05-06 12:56:14] Normalized relative path: /index
-[2025-05-06 12:56:14] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:57:24] Request URI: /billing/index
-[2025-05-06 12:57:24] Normalized relative path: /index
-[2025-05-06 12:57:24] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 12:58:20] Request URI: /billing/index
-[2025-05-06 12:58:20] Normalized relative path: /index
-[2025-05-06 12:58:20] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:00:37] Request URI: /billing/index
-[2025-05-06 13:00:37] Normalized relative path: /index
-[2025-05-06 13:00:37] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:07:54] Request URI: /billing/index
-[2025-05-06 13:07:54] Normalized relative path: /index
-[2025-05-06 13:07:54] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:11:20] Request URI: /billing/index
-[2025-05-06 13:11:20] Normalized relative path: /index
-[2025-05-06 13:11:20] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:11:26] Request URI: /billing/index
-[2025-05-06 13:11:26] Normalized relative path: /index
-[2025-05-06 13:11:26] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:11:27] Request URI: /billing/index
-[2025-05-06 13:11:27] Normalized relative path: /index
-[2025-05-06 13:11:27] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:12:46] Request URI: /billing/staff/billview
-[2025-05-06 13:12:46] Normalized relative path: /staff/billview
-[2025-05-06 13:12:46] Matched page route: /staff/billview -> C:\server\www\billing/staff/billview.html
-[2025-05-06 13:12:46] Access denied for role '' to /staff/billview. Required: admin/staff
-[2025-05-06 13:13:00] Request URI: /billing/index
-[2025-05-06 13:13:00] Normalized relative path: /index
-[2025-05-06 13:13:00] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:13:14] Request URI: /billing/index
-[2025-05-06 13:13:14] Normalized relative path: /index
-[2025-05-06 13:13:14] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:27:54] Request URI: /billing/index
-[2025-05-06 13:27:54] Normalized relative path: /index
-[2025-05-06 13:27:54] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 13:27:54] File not found for route /index: C:\server\www\billing/index.html
-[2025-05-06 13:41:27] Request URI: /billing/login/role=staff
-[2025-05-06 13:41:27] Normalized relative path: /login/role=staff
-[2025-05-06 14:08:53] Request URI: /billing/index
-[2025-05-06 14:08:53] Normalized relative path: /index
-[2025-05-06 14:08:53] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 14:08:53] File not found for route /index: C:\server\www\billing/index.html
-[2025-05-06 14:09:21] Request URI: /billing/index
-[2025-05-06 14:09:21] Normalized relative path: /index
-[2025-05-06 14:09:21] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 14:09:21] File not found for route /index: C:\server\www\billing/index.html
-[2025-05-06 14:19:34] Request URI: /billing/index
-[2025-05-06 14:19:34] Normalized relative path: /index
-[2025-05-06 14:19:34] Matched page route: /index -> C:\server\www\billing/index.html
-[2025-05-06 14:19:34] File not found for route /index: C:\server\www\billing/index.html
+[2025-05-06 16:36:01] Request URI: /billing/index
+[2025-05-06 16:36:01] Normalized relative path: /index
+[2025-05-06 16:36:01] Matched page route: /index -> C:\server\www\billing/index.php
+[2025-05-06 16:36:14] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 16:36:14] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 16:36:14] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 16:41:24] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 16:41:24] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 16:41:24] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 16:41:28] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 16:41:28] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 16:41:28] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 16:53:02] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 16:53:02] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 16:53:02] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 17:07:54] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 17:07:54] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 17:07:54] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 17:08:32] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 17:08:32] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 17:08:32] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 17:08:38] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 17:08:38] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 17:08:38] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 17:08:41] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 17:08:41] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 17:08:41] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 17:30:50] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 17:30:50] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 17:30:50] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js
+[2025-05-06 17:39:48] Request URI: /billing/js/admin-dashboard.js
+[2025-05-06 17:39:48] Normalized relative path: /js/admin-dashboard.js
+[2025-05-06 17:39:48] Static file not found or not readable: C:\server\www\billing/js/admin-dashboard.js

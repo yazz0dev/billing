@@ -178,7 +178,7 @@
                     <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
             </button>
-        </div>
+        </div> <!-- End of topbar-actions -->
     </div>
 
     <!-- Mobile menu (hidden by default) -->
@@ -199,7 +199,23 @@ function fetchTopBarNotifications() {
         canRequest() { return !this.isOpen; }
     };
 
-    if (!notificationCircuitBreaker.canRequest() || !notificationListEl || !window.popupNotification) {
+    // Define fallback icon generator if window.popupNotification doesn't exist
+    const getNotificationIcon = (type) => {
+        if (window.popupNotification && typeof window.popupNotification.getIconForType === 'function') {
+            return window.popupNotification.getIconForType(type);
+        }
+        
+        // Fallback icons if popupNotification is not available
+        const icons = {
+            'success': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            'info': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+            'warning': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+            'error': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>'
+        };
+        return icons[type] || icons['info'];
+    };
+
+    if (!notificationCircuitBreaker.canRequest() || !notificationListEl) {
         if (notificationListEl) notificationListEl.innerHTML = '<div class="notification-error">Notifications temporarily unavailable.</div>';
         if (notificationBadge) notificationBadge.style.display = 'none';
         return;
@@ -208,48 +224,71 @@ function fetchTopBarNotifications() {
 
     const formData = new FormData();
     formData.append('popup_action', 'get'); // This is from popup-notification.js
-    fetch('/billing/notification.php', { method: 'POST', body: formData, signal: AbortSignal.timeout(8000) })
-        .then(response => {
-            if (!response.ok) throw new Error(`Server error: ${response.status}`);
-            // Check if the response is actually JSON
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Server returned non-JSON response. Check server configuration.');
+    
+    fetch('/billing/notification.php', { 
+        method: 'POST', 
+        body: formData, 
+        signal: AbortSignal.timeout(8000)
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        // Check if the response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response. Check server configuration.');
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result && result.status === 'success' && Array.isArray(result.data)) {
+            // PHP integration: get user ID from PHP session for unread logic
+            const userId = "<?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : (isset($_SESSION['username']) ? $_SESSION['username'] : ''); ?>";
+            
+            const unreadCount = result.data.filter(n => !(n.seen_by && n.seen_by.includes(userId || window.userSessionData?.id || window.userSessionData?.name))).length;
+            if (notificationBadge) {
+                notificationBadge.textContent = unreadCount;
+                notificationBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
             }
-            return response.json();
-        })
-        .then(result => {
-            if (result && result.status === 'success' && Array.isArray(result.data)) {
-                // PHP integration: get user ID from PHP session for unread logic
-                const userId = "<?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : (isset($_SESSION['username']) ? $_SESSION['username'] : ''); ?>";
-                
-                const unreadCount = result.data.filter(n => !(n.seen_by && n.seen_by.includes(userId || window.userSessionData?.id || window.userSessionData?.name))).length;
-                if (notificationBadge) {
-                    notificationBadge.textContent = unreadCount;
-                    notificationBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
+            if (notificationListEl) {
+                if (result.data.length > 0) {
+                    notificationListEl.innerHTML = result.data.map(n => `
+                        <div class="notification-item ${n.type || 'info'} ${ (n.seen_by && n.seen_by.includes(userId || window.userSessionData?.id || window.userSessionData?.name)) ? 'seen' : 'unseen'}">
+                            <div class="notification-icon">${getNotificationIcon(n.type || 'info')}</div>
+                            <div class="notification-content">
+                                <div class="notification-message">${n.message}</div>
+                                <div class="notification-time">${formatTimeAgo(n.created_at.$date || n.created_at)}</div>
+                            </div>
+                        </div>`).join('');
+                } else {
+                    notificationListEl.innerHTML = '<div class="empty-notifications">No new notifications</div>';
                 }
-                if (notificationListEl) {
-                    if (result.data.length > 0) {
-                        notificationListEl.innerHTML = result.data.map(n => `
-                            <div class="notification-item ${n.type || 'info'} ${ (n.seen_by && n.seen_by.includes(userId || window.userSessionData?.id || window.userSessionData?.name)) ? 'seen' : 'unseen'}">
-                                <div class="notification-icon">${window.popupNotification.getIconForType(n.type || 'info')}</div>
-                                <div class="notification-content">
-                                    <div class="notification-message">${n.message}</div>
-                                    <div class="notification-time">${formatTimeAgo(n.created_at.$date || n.created_at)}</div>
-                                </div>
-                            </div>`).join('');
-                    } else {
-                        notificationListEl.innerHTML = '<div class="empty-notifications">No new notifications</div>';
-                    }
-                }
-            } else { throw new Error(result.message || 'Invalid data format'); }
-        })
-        .catch(err => {
-            console.error('Error fetching topbar notifications:', err);
-            notificationCircuitBreaker.recordFailure();
-            if (notificationListEl) notificationListEl.innerHTML = `<div class="notification-error">Could not load. <button class="retry-btn" onclick="fetchTopBarNotifications()">Retry</button></div>`;
-            if (notificationBadge) notificationBadge.style.display = 'none';
-        });
+            }
+        } else { throw new Error(result.message || 'Invalid data format'); }
+    })
+    .catch(err => {
+        console.error('Error fetching topbar notifications:', err);
+        notificationCircuitBreaker.recordFailure();
+        if (notificationListEl) notificationListEl.innerHTML = `<div class="notification-error">Could not load. <button class="retry-btn" onclick="fetchTopBarNotifications()">Retry</button></div>`;
+        if (notificationBadge) notificationBadge.style.display = 'none';
+    });
+}
+
+// Function to format time for notifications 
+function formatTimeAgo(timestamp) {
+    if (!timestamp) return 'Some time ago';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const seconds = Math.round((now - date) / 1000);
+    const minutes = Math.round(seconds / 60);
+    const hours = Math.round(minutes / 60);
+    const days = Math.round(hours / 24);
+
+    if (seconds < 5) return 'Just now';
+    if (seconds < 60) return `${seconds} sec ago`;
+    if (minutes < 60) return `${minutes} min ago`;
+    if (hours < 24) return `${hours} hr ago`;
+    if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 // Store circuit breaker in window for reuse
@@ -276,6 +315,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeNotifications = document.getElementById('closeNotifications');
     const mobileMenuToggle = document.getElementById('mobileMenuToggle');
     const mobileMenu = document.getElementById('mobileMenu');
+
+    // Role-based navigation visibility
+    const userRole = window.userSessionData.role;
+    const adminOnlyNavItems = document.querySelectorAll('.topbar-nav .admin-only');
+    const staffOnlyNavItems = document.querySelectorAll('.topbar-nav .staff-only');
+
+    if (userRole === 'admin') {
+        adminOnlyNavItems.forEach(item => item.style.display = 'flex');
+        // staffOnlyNavItems remain hidden by default CSS
+    } else if (userRole === 'staff') {
+        staffOnlyNavItems.forEach(item => item.style.display = 'flex');
+        // adminOnlyNavItems remain hidden by default CSS
+    }
+    // For other roles or if role is not set, both admin and staff items remain hidden by CSS default
     
     // Theme toggle
     if (themeToggle) {
@@ -310,15 +363,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Notifications panel
     if (notificationButton && notificationPanel) {
-        notificationButton.addEventListener('click', function() {
-            const isOpen = notificationPanel.classList.toggle('show');
-            if (isOpen) fetchTopBarNotifications(); // Fetch only when opening
+        notificationButton.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default action
+            e.stopPropagation(); // Prevent event bubbling
+            
+            // Toggle panel visibility
+            notificationPanel.classList.toggle('show');
+            
+            // If panel is now visible, fetch notifications
+            if (notificationPanel.classList.contains('show')) {
+                fetchTopBarNotifications();
+            }
         });
+        
         if (closeNotifications) {
-            closeNotifications.addEventListener('click', () => notificationPanel.classList.remove('show'));
+            closeNotifications.addEventListener('click', function(e) {
+                e.preventDefault();
+                notificationPanel.classList.remove('show');
+            });
         }
+        
+        // Close panel when clicking outside
         document.addEventListener('click', function(event) {
-             if (notificationButton && !notificationButton.contains(event.target) && notificationPanel && !notificationPanel.contains(event.target)) {
+            if (notificationButton && !notificationButton.contains(event.target) && 
+                notificationPanel && !notificationPanel.contains(event.target)) {
                 notificationPanel.classList.remove('show');
             }
         });
@@ -331,15 +399,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear mobile menu first
         mobileMenu.innerHTML = '';
         
-        // Create mobile nav items from desktop nav
-        const navItems = document.querySelectorAll('.topbar-nav .topbar-nav-item');
-        navItems.forEach(item => {
-            const clone = item.cloneNode(true);
-            // Ensure links in mobile menu also close the menu on click
-            clone.querySelectorAll('a').forEach(a => {
-                a.addEventListener('click', () => mobileMenu.classList.remove('show'));
-            });
-            mobileMenu.appendChild(clone);
+        // Create mobile nav items from VISIBLE desktop nav items
+        const navItemsToClone = document.querySelectorAll('.topbar-nav .topbar-nav-item');
+        navItemsToClone.forEach(item => {
+            // Check if the item is currently displayed (not 'none' due to role logic)
+            // getComputedStyle is more robust if classes were used, but inline style check is fine here.
+            if (window.getComputedStyle(item).display !== 'none') {
+                const clone = item.cloneNode(true);
+                // Remove inline display style from clone so mobile CSS can control it
+                clone.style.removeProperty('display'); 
+                
+                clone.querySelectorAll('a').forEach(a => {
+                    a.addEventListener('click', () => mobileMenu.classList.remove('show'));
+                });
+                mobileMenu.appendChild(clone);
+            }
         });
     }
 

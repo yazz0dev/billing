@@ -10,19 +10,41 @@ error_reporting(E_ALL);
 
 header('Content-Type: application/json');
 
-// Create a diagnostics response
 $diagnostics = [
-    'status' => 'success',
-    'timestamp' => date('Y-m-d H:i:s'),
+    'script_name' => basename(__FILE__),
+    'timestamp' => date('c'),
     'php_version' => phpversion(),
-    'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
-    'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'Unknown',
-    'request_headers' => [],
-    'session_status' => session_status() == PHP_SESSION_ACTIVE ? 'Active' : 'Inactive',
+    'server_api' => php_sapi_name(),
+    'session_status' => session_status() === PHP_SESSION_ACTIVE ? 'Active' : (session_status() === PHP_SESSION_NONE ? 'None' : 'Disabled'),
+    'autoload_status' => 'Not checked yet',
+    'config_file' => 'Not checked yet',
     'mongodb_extension' => extension_loaded('mongodb') ? 'Loaded' : 'Not loaded',
-    'mongodb_client_class' => class_exists('MongoDB\\Client') ? 'Available' : 'Not available',
+    'mongodb_client_class' => 'Initial state: Not checked',
+    'mongodb_connection' => 'Not tested yet',
+    'request_headers' => [],
     'expected_collections' => ['user', 'products', 'bill', 'popup_notifications']
 ];
+
+// Ensure vendor autoload is loaded
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+    $diagnostics['autoload_status'] = 'Loaded successfully.';
+
+    // Determine MongoDB\Client class availability now that autoloader is processed
+    if (extension_loaded('mongodb')) {
+        if (class_exists('MongoDB\\Client')) {
+            $diagnostics['mongodb_client_class'] = 'Available (extension loaded, class found by autoloader)';
+        } else {
+            $diagnostics['mongodb_client_class'] = 'Not available (MongoDB extension loaded, but MongoDB\\Client class NOT found by autoloader. Ensure "mongodb/mongodb" is in composer.json and installed.)';
+        }
+    } else {
+        $diagnostics['mongodb_client_class'] = 'Not available (MongoDB extension NOT loaded)';
+    }
+} else {
+    $diagnostics['autoload_status'] = 'Error: vendor/autoload.php not found. Key functionalities (like MongoDB client) will fail.';
+    $diagnostics['mongodb_client_class'] = 'Not available (autoloader missing)';
+    $diagnostics['mongodb_connection'] = 'Skipped (autoloader missing)';
+}
 
 // Get request headers
 foreach (getallheaders() as $name => $value) {
@@ -71,9 +93,18 @@ if (extension_loaded('mongodb') && class_exists('MongoDB\\Client')) {
             $diagnostics['billing_database'] = 'Not found';
         }
         
+    } catch (MongoDB\Driver\Exception\ConnectionTimeoutException $e) {
+        $diagnostics['mongodb_connection'] = 'Error: Connection Timeout - ' . $e->getMessage();
+    } catch (MongoDB\Driver\Exception\AuthenticationException $e) {
+        $diagnostics['mongodb_connection'] = 'Error: Authentication Failed - ' . $e->getMessage();
     } catch (Exception $e) {
-        $diagnostics['mongodb_connection'] = 'Failed';
-        $diagnostics['error_message'] = $e->getMessage();
+        $diagnostics['mongodb_connection'] = 'Error: ' . $e->getMessage();
+    }
+} else if ($diagnostics['mongodb_connection'] === 'Not tested yet') {
+    if (!extension_loaded('mongodb')) {
+        $diagnostics['mongodb_connection'] = 'Skipped (MongoDB extension not loaded)';
+    } else {
+        $diagnostics['mongodb_connection'] = 'Skipped (MongoDB\\Client class not found by autoloader)';
     }
 }
 
