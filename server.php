@@ -1,34 +1,6 @@
-
-
-
-//billing/layout_footer.php
-        </main> <!-- End main-content-area -->
-
-        <footer class="app-footer glass">
-            <p>&copy; <?php echo date("Y"); ?> Supermarket Billing System. All rights reserved.</p>
-        </footer>
-    </div> <!-- End page-wrapper -->
-
-    <script src="/billing/js/popup-notification.js"></script>
-    <!-- Common app-wide JS can be added here -->
-    <!-- <script src="/billing/js/app.js"></script> -->
-    <?php if (isset($pageScripts) && is_array($pageScripts)): ?>
-        <?php foreach ($pageScripts as $script): ?>
-            <script src="<?php echo htmlspecialchars($script); ?>"></script>
-        <?php endforeach; ?>
-    <?php endif; ?>
-</body>
-</html>
-
-
-
-
-
-
-
-
-//billing/server.php`** (Minor improvements, notification titles)
 <?php
+//billing/server.php`** (Minor improvements, notification titles)
+
 // Ensure vendor autoload is loaded if not already by router
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';

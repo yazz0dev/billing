@@ -1,4 +1,26 @@
-//billing/admin/index.html 
+<?php
+// Check authentication FIRST - before any output
+session_start();
+
+// Check if user is admin
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    // Redirect non-admin users
+    header('Location: /billing/login.php?error=unauthorized');
+    exit;
+}
+
+// Set page variables - AFTER authentication check
+$pageTitle = "Admin Dashboard";
+$bodyClass = "admin-page";
+
+// Page-specific scripts
+$pageScripts = [
+    '/billing/js/admin-dashboard.js' // Create this if needed later
+];
+
+// Include header AFTER authentication check
+require_once '../includes/header.php';
+?>
 
 <h1 class="page-title">Admin Dashboard</h1>
 
@@ -88,3 +110,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<?php
+// Include footer
+require_once '../includes/footer.php';
+?>

@@ -1,3 +1,29 @@
+<?php
+// Start session
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Redirect already logged in users
+if (isset($_SESSION['user_role'])) {
+    $redirectTo = '/billing/';
+    if ($_SESSION['user_role'] === 'admin') {
+        $redirectTo = '/billing/admin/';
+    } elseif ($_SESSION['user_role'] === 'staff') {
+        $redirectTo = '/billing/staff/';
+    }
+    header('Location: ' . $redirectTo);
+    exit;
+}
+
+$pageTitle = "Login - Billing System";
+$bodyClass = "login-page";
+$hideTopbar = true; // Don't show the topbar on login page
+
+// Include header
+require_once '../includes/header.php';
+?>
+
 <div class="login-page-container">
     <div class="login-form-wrapper">
         <div class="login-header">
@@ -6,7 +32,9 @@
         </div>
         
         <div class="login-error-message" id="errorMessage">
-            <!-- Error messages will be shown here by JS -->
+            <?php if(isset($_GET['error']) && $_GET['error'] == 'unauthorized'): ?>
+                You must be logged in to access that page.
+            <?php endif; ?>
         </div>
         
         <form id="loginForm" class="login-form glass">
@@ -33,7 +61,7 @@
             <button type="submit" class="btn w-full">Login</button>
         </form>
         
-        <a href="/billing/index" class="login-back-link">
+        <a href="/billing/" class="login-back-link">
             <svg class="back-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
@@ -55,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // It's a one-time message, so we can clear it from the window object
         // to prevent it from showing again if the user navigates within the SPA portion (if any)
-        // or on a soft reload without a full page cycle that re-runs layout_header.php
         delete window.initialPageMessage;
     }
 
@@ -74,19 +101,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: formData
                 });
                 
-                if (!response.ok) {
-                     const errorText = await response.text(); // Try to get more details
-                     throw new Error(`Server error: ${response.status}${errorText ? ' - ' + errorText : ''}`);
+                // Check content type before trying to parse JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // If we got HTML instead of JSON, show a more helpful error
+                    const errorText = await response.text();
+                    console.error('Server returned non-JSON response:', errorText.substring(0, 200) + '...');
+                    throw new Error('Server returned non-JSON response. The server might be experiencing issues.');
                 }
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
                 const result = await response.json();
                 
+                // Continue with login logic
                 if (result.status === 'success') {
                     // Redirect based on role
-                    let targetUrl = '/billing/index'; // Default redirect
+                    let targetUrl = '/billing/'; // Default redirect
                     if (result.role === 'admin') {
-                        targetUrl = '/billing/admin';
+                        targetUrl = '/billing/admin/';
                     } else if (result.role === 'staff') {
-                        targetUrl = '/billing/staff';
+                        targetUrl = '/billing/staff/';
                     }
                     window.location.href = targetUrl;
                 } else {
@@ -108,3 +145,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<?php
+// Include footer
+require_once '../includes/footer.php';
+?>

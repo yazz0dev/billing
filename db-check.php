@@ -1,10 +1,9 @@
-//billing/db-check.php
+
 <?php
-/**
+/** /billing/db-check.php
  * MongoDB Connection Check Tool
  * This script verifies the MongoDB connection and provides diagnostic information
- * It will be wrapped by layout_header.php and layout_footer.php by the router.
- */
+*/
 
 // Display errors for troubleshooting if not in production
 // ini_set('display_errors', 1); // Router handles this

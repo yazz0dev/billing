@@ -1,10 +1,15 @@
-//billing/ui/topbar.html`** (JavaScript part needs to be updated if it was trying to set session data)
-
+<?php
+/**
+ * Topbar component for the billing system
+ * Handles navigation, user profile, theme switching, and notifications
+ */
+// Ensure no whitespace before PHP tag to prevent output
+?>
 <div class="topbar">
     <div class="topbar-container">
         <!-- Logo Section -->
         <div class="topbar-logo">
-            <a href="/billing/index"> <!-- Updated to router path -->
+            <a href="/billing/">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo-icon">
                     <path d="M3 3h18v18H3z"></path>
                     <path d="M3 9h18"></path>
@@ -17,17 +22,19 @@
         <!-- Navigation Links - Shown based on user role -->
         <nav class="topbar-nav">
             <!-- Common Links -->
-            <a href="/billing/index" class="topbar-nav-item" data-page="home">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-                <span>Home</span>
-            </a>
+            <div class="topbar-nav-item">
+                <a href="/billing/" data-page="home">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>Home</span>
+                </a>
+            </div>
 
             <!-- Admin Links -->
             <div class="topbar-nav-item admin-only">
-                <a href="/billing/admin" data-page="admin-dashboard"> <!-- Updated to router path -->
+                <a href="/billing/admin/" data-page="admin-dashboard">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
                         <rect x="3" y="3" width="7" height="7"></rect>
                         <rect x="14" y="3" width="7" height="7"></rect>
@@ -39,7 +46,7 @@
             </div>
             
             <div class="topbar-nav-item admin-only">
-                <a href="/billing/product" data-page="products"> <!-- Updated to router path -->
+                <a href="/billing/product/" data-page="products">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
                         <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                         <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -51,7 +58,7 @@
 
             <!-- Staff Links -->
             <div class="topbar-nav-item staff-only">
-                <a href="/billing/staff" data-page="billing"> <!-- Updated to router path -->
+                <a href="/billing/staff/" data-page="billing">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                     </svg>
@@ -60,7 +67,7 @@
             </div>
             
             <div class="topbar-nav-item staff-only">
-                <a href="/billing/staff/billview" data-page="bill-history"> <!-- Updated to router path -->
+                <a href="/billing/staff/billview.php" data-page="bill-history">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
@@ -100,7 +107,7 @@
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                     </svg>
-                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span> <!-- Hide initially -->
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
                 </button>
                 <div class="notification-panel" id="notificationPanel">
                     <div class="notification-header">
@@ -122,7 +129,7 @@
                             <circle cx="12" cy="7" r="4"></circle>
                         </svg>
                     </div>
-                    <span class="user-name" id="userName">User</span>
+                    <span class="user-name" id="userName"><?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'User'; ?></span>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-chevron">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
@@ -131,19 +138,19 @@
                 <div class="user-dropdown" id="userDropdown">
                     <div class="user-dropdown-header">
                         <div class="user-info">
-                            <span class="user-role" id="userRole">Role</span>
-                            <span class="user-email" id="userEmail">user@example.com</span>
+                            <span class="user-role" id="userRole"><?php echo isset($_SESSION['user_role']) ? ucfirst(htmlspecialchars($_SESSION['user_role'])) : 'Role'; ?></span>
+                            <span class="user-email" id="userEmail"><?php echo isset($_SESSION['user_email']) ? htmlspecialchars($_SESSION['user_email']) : 'user@example.com'; ?></span>
                         </div>
                     </div>
                     <div class="user-dropdown-body">
-                        <a href="#" class="dropdown-item disabled"> <!-- Disabled example -->
+                        <a href="#" class="dropdown-item disabled">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-icon">
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="12" cy="7" r="4"></circle>
                             </svg>
                             Profile (soon)
                         </a>
-                        <a href="#" class="dropdown-item disabled"> <!-- Disabled example -->
+                        <a href="#" class="dropdown-item disabled">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-icon">
                                 <circle cx="12" cy="12" r="3"></circle>
                                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -151,7 +158,7 @@
                             Settings (soon)
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a href="/billing/logout" class="dropdown-item text-danger"> <!-- Updated to router path -->
+                        <a href="/billing/logout.php" class="dropdown-item text-danger">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-icon">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                                 <polyline points="16 17 21 12 16 7"></polyline>
@@ -180,12 +187,87 @@
     </div>
 </div>
 
-<!-- Styles for topbar are now in global.css -->
 <!-- Script for topbar functionality -->
 <script>
-// This script will run when topbar.html is included by PHP.
-// It expects window.userSessionData to be set by layout_header.php.
+// Define fetchTopBarNotifications in global scope
+function fetchTopBarNotifications() {
+    const notificationListEl = document.getElementById('notificationList');
+    const notificationBadge = document.getElementById('notificationBadge');
+    const notificationCircuitBreaker = window.notificationCircuitBreaker || {
+        failures: 0, maxFailures: 3, resetTimeout: 60000, lastFailure: 0, isOpen: false,
+        recordFailure() { this.failures++; this.lastFailure = Date.now(); if (this.failures >= this.maxFailures) { this.isOpen = true; setTimeout(() => { this.isOpen = false; this.failures = 0; }, this.resetTimeout); } return this.isOpen; },
+        canRequest() { return !this.isOpen; }
+    };
+
+    if (!notificationCircuitBreaker.canRequest() || !notificationListEl || !window.popupNotification) {
+        if (notificationListEl) notificationListEl.innerHTML = '<div class="notification-error">Notifications temporarily unavailable.</div>';
+        if (notificationBadge) notificationBadge.style.display = 'none';
+        return;
+    }
+    if (notificationListEl) notificationListEl.innerHTML = '<div class="loading-spinner">Loading...</div>';
+
+    const formData = new FormData();
+    formData.append('popup_action', 'get'); // This is from popup-notification.js
+    fetch('/billing/notification.php', { method: 'POST', body: formData, signal: AbortSignal.timeout(8000) })
+        .then(response => {
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            // Check if the response is actually JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned non-JSON response. Check server configuration.');
+            }
+            return response.json();
+        })
+        .then(result => {
+            if (result && result.status === 'success' && Array.isArray(result.data)) {
+                // PHP integration: get user ID from PHP session for unread logic
+                const userId = "<?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : (isset($_SESSION['username']) ? $_SESSION['username'] : ''); ?>";
+                
+                const unreadCount = result.data.filter(n => !(n.seen_by && n.seen_by.includes(userId || window.userSessionData?.id || window.userSessionData?.name))).length;
+                if (notificationBadge) {
+                    notificationBadge.textContent = unreadCount;
+                    notificationBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
+                }
+                if (notificationListEl) {
+                    if (result.data.length > 0) {
+                        notificationListEl.innerHTML = result.data.map(n => `
+                            <div class="notification-item ${n.type || 'info'} ${ (n.seen_by && n.seen_by.includes(userId || window.userSessionData?.id || window.userSessionData?.name)) ? 'seen' : 'unseen'}">
+                                <div class="notification-icon">${window.popupNotification.getIconForType(n.type || 'info')}</div>
+                                <div class="notification-content">
+                                    <div class="notification-message">${n.message}</div>
+                                    <div class="notification-time">${formatTimeAgo(n.created_at.$date || n.created_at)}</div>
+                                </div>
+                            </div>`).join('');
+                    } else {
+                        notificationListEl.innerHTML = '<div class="empty-notifications">No new notifications</div>';
+                    }
+                }
+            } else { throw new Error(result.message || 'Invalid data format'); }
+        })
+        .catch(err => {
+            console.error('Error fetching topbar notifications:', err);
+            notificationCircuitBreaker.recordFailure();
+            if (notificationListEl) notificationListEl.innerHTML = `<div class="notification-error">Could not load. <button class="retry-btn" onclick="fetchTopBarNotifications()">Retry</button></div>`;
+            if (notificationBadge) notificationBadge.style.display = 'none';
+        });
+}
+
+// Store circuit breaker in window for reuse
+window.notificationCircuitBreaker = {
+    failures: 0, maxFailures: 3, resetTimeout: 60000, lastFailure: 0, isOpen: false,
+    recordFailure() { this.failures++; this.lastFailure = Date.now(); if (this.failures >= this.maxFailures) { this.isOpen = true; setTimeout(() => { this.isOpen = false; this.failures = 0; }, this.resetTimeout); } return this.isOpen; },
+    canRequest() { return !this.isOpen; }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Set PHP session data for JavaScript
+    window.userSessionData = {
+        name: "<?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'User'; ?>",
+        role: "<?php echo isset($_SESSION['user_role']) ? htmlspecialchars($_SESSION['user_role']) : ''; ?>",
+        email: "<?php echo isset($_SESSION['user_email']) ? htmlspecialchars($_SESSION['user_email']) : 'user@example.com'; ?>",
+        id: "<?php echo isset($_SESSION['user_id']) ? htmlspecialchars($_SESSION['user_id']) : ''; ?>"
+    };
+
     const themeToggle = document.getElementById('themeToggle');
     const userProfileButton = document.getElementById('userProfileButton');
     const userDropdown = document.getElementById('userDropdown');
@@ -194,12 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeNotifications = document.getElementById('closeNotifications');
     const mobileMenuToggle = document.getElementById('mobileMenuToggle');
     const mobileMenu = document.getElementById('mobileMenu');
-    const userNameEl = document.getElementById('userName');
-    const userRoleEl = document.getElementById('userRole');
-    const userEmailEl = document.getElementById('userEmail');
-    const notificationBadge = document.getElementById('notificationBadge');
-    const notificationListEl = document.getElementById('notificationList');
-
+    
     // Theme toggle
     if (themeToggle) {
         const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -250,8 +327,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mobile menu
     if (mobileMenuToggle && mobileMenu) {
         mobileMenuToggle.addEventListener('click', () => mobileMenu.classList.toggle('show'));
-        const navItems = document.querySelectorAll('.topbar .topbar-nav .topbar-nav-item');
-        mobileMenu.innerHTML = ''; // Clear first
+        
+        // Clear mobile menu first
+        mobileMenu.innerHTML = '';
+        
+        // Create mobile nav items from desktop nav
+        const navItems = document.querySelectorAll('.topbar-nav .topbar-nav-item');
         navItems.forEach(item => {
             const clone = item.cloneNode(true);
             // Ensure links in mobile menu also close the menu on click
@@ -264,10 +345,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // User info update from global JS variable
     if (window.userSessionData) {
+        const userNameEl = document.getElementById('userName');
+        const userRoleEl = document.getElementById('userRole');
+        const userEmailEl = document.getElementById('userEmail');
         if (userNameEl) userNameEl.textContent = window.userSessionData.name || 'User';
         if (userRoleEl) userRoleEl.textContent = window.userSessionData.role ? window.userSessionData.role.charAt(0).toUpperCase() + window.userSessionData.role.slice(1) : 'Role';
         if (userEmailEl) userEmailEl.textContent = window.userSessionData.email || 'email@example.com';
-        // data-role on body is set by PHP in layout_header.php
+ 
     }
 
     // Active page highlighting
@@ -278,8 +362,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const linkPath = link.getAttribute('href');
             // More robust matching for active link
             if (linkPath === currentPath ||
-                (currentPath.startsWith(linkPath) && linkPath !== '/billing/index' && linkPath.length > ('/billing/index').length) || // for paths like /billing/admin/*
-                (currentPath === '/billing/' && linkPath === '/billing/index') // Home specifically
+                (currentPath.startsWith(linkPath) && linkPath !== '/billing/' && linkPath.length > ('/billing/').length) || // for paths like /billing/admin/*
+                (currentPath === '/billing/' && linkPath === '/billing/') // Home specifically
             ) {
                 link.classList.add('active');
             } else {
@@ -288,60 +372,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     setActivePage();
-
-
-    // Notification fetching and display logic for topbar
-    const notificationCircuitBreaker = { /* ... (same as before, ensure it's defined) ... */
-        failures: 0, maxFailures: 3, resetTimeout: 60000, lastFailure: 0, isOpen: false,
-        recordFailure() { /* ... */ this.failures++; this.lastFailure = Date.now(); if (this.failures >= this.maxFailures) { this.isOpen = true; setTimeout(() => { this.isOpen = false; this.failures = 0; }, this.resetTimeout); } return this.isOpen; },
-        canRequest() { return !this.isOpen; }
-    };
-
-    function fetchTopBarNotifications() {
-        if (!notificationCircuitBreaker.canRequest() || !notificationListEl || !window.popupNotification) {
-            if (notificationListEl) notificationListEl.innerHTML = '<div class="notification-error">Notifications temporarily unavailable.</div>';
-            if (notificationBadge) notificationBadge.style.display = 'none';
-            return;
-        }
-        if (notificationListEl) notificationListEl.innerHTML = '<div class="loading-spinner">Loading...</div>';
-
-        const formData = new FormData();
-        formData.append('popup_action', 'get'); // This is from popup-notification.js, ensure notification.php handles this
-        fetch('/billing/notification.php', { method: 'POST', body: formData, signal: AbortSignal.timeout(8000) })
-            .then(response => {
-                if (!response.ok) throw new Error(`Server error: ${response.status}`);
-                return response.json();
-            })
-            .then(result => {
-                if (result && result.status === 'success' && Array.isArray(result.data)) {
-                    const unreadCount = result.data.filter(n => !(n.seen_by && n.seen_by.includes(window.userSessionData.id || window.userSessionData.name))).length; // Basic unread logic
-                    if (notificationBadge) {
-                        notificationBadge.textContent = unreadCount;
-                        notificationBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
-                    }
-                    if (notificationListEl) {
-                        if (result.data.length > 0) {
-                            notificationListEl.innerHTML = result.data.map(n => `
-                                <div class="notification-item ${n.type || 'info'} ${ (n.seen_by && n.seen_by.includes(window.userSessionData.id || window.userSessionData.name)) ? 'seen' : 'unseen'}">
-                                    <div class="notification-icon">${window.popupNotification.getIconForType(n.type || 'info')}</div>
-                                    <div class="notification-content">
-                                        <div class="notification-message">${n.message}</div>
-                                        <div class="notification-time">${formatTimeAgo(n.created_at.$date || n.created_at)}</div>
-                                    </div>
-                                </div>`).join('');
-                        } else {
-                            notificationListEl.innerHTML = '<div class="empty-notifications">No new notifications</div>';
-                        }
-                    }
-                } else { throw new Error(result.message || 'Invalid data format'); }
-            })
-            .catch(err => {
-                console.error('Error fetching topbar notifications:', err);
-                notificationCircuitBreaker.recordFailure();
-                if (notificationListEl) notificationListEl.innerHTML = `<div class="notification-error">Could not load. <button class="retry-btn" onclick="fetchTopBarNotifications()">Retry</button></div>`;
-                if (notificationBadge) notificationBadge.style.display = 'none';
-            });
-    }
 
     function formatTimeAgo(timestamp) {
         if (!timestamp) return 'Some time ago';
@@ -380,6 +410,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2500);
 
 });
-// Expose fetchTopBarNotifications globally if needed for retry buttons etc.
-window.fetchTopBarNotifications = fetchTopBarNotifications;
 </script>

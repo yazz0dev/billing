@@ -4,3 +4,58 @@
 [2025-05-06 12:42:57] Request URI: /billing/index
 [2025-05-06 12:42:57] Normalized relative path: /index
 [2025-05-06 12:42:57] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:48:02] Request URI: /billing/index
+[2025-05-06 12:48:02] Normalized relative path: /index
+[2025-05-06 12:48:02] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:49:25] Request URI: /billing/index
+[2025-05-06 12:49:25] Normalized relative path: /index
+[2025-05-06 12:49:25] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:53:14] Request URI: /billing/index
+[2025-05-06 12:53:14] Normalized relative path: /index
+[2025-05-06 12:53:14] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:54:51] Request URI: /billing/index
+[2025-05-06 12:54:51] Normalized relative path: /index
+[2025-05-06 12:54:51] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:55:21] Request URI: /billing/index
+[2025-05-06 12:55:21] Normalized relative path: /index
+[2025-05-06 12:55:21] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:56:14] Request URI: /billing/index
+[2025-05-06 12:56:14] Normalized relative path: /index
+[2025-05-06 12:56:14] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:57:24] Request URI: /billing/index
+[2025-05-06 12:57:24] Normalized relative path: /index
+[2025-05-06 12:57:24] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 12:58:20] Request URI: /billing/index
+[2025-05-06 12:58:20] Normalized relative path: /index
+[2025-05-06 12:58:20] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:00:37] Request URI: /billing/index
+[2025-05-06 13:00:37] Normalized relative path: /index
+[2025-05-06 13:00:37] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:07:54] Request URI: /billing/index
+[2025-05-06 13:07:54] Normalized relative path: /index
+[2025-05-06 13:07:54] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:11:20] Request URI: /billing/index
+[2025-05-06 13:11:20] Normalized relative path: /index
+[2025-05-06 13:11:20] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:11:26] Request URI: /billing/index
+[2025-05-06 13:11:26] Normalized relative path: /index
+[2025-05-06 13:11:26] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:11:27] Request URI: /billing/index
+[2025-05-06 13:11:27] Normalized relative path: /index
+[2025-05-06 13:11:27] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:12:46] Request URI: /billing/staff/billview
+[2025-05-06 13:12:46] Normalized relative path: /staff/billview
+[2025-05-06 13:12:46] Matched page route: /staff/billview -> C:\server\www\billing/staff/billview.html
+[2025-05-06 13:12:46] Access denied for role '' to /staff/billview. Required: admin/staff
+[2025-05-06 13:13:00] Request URI: /billing/index
+[2025-05-06 13:13:00] Normalized relative path: /index
+[2025-05-06 13:13:00] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:13:14] Request URI: /billing/index
+[2025-05-06 13:13:14] Normalized relative path: /index
+[2025-05-06 13:13:14] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:27:54] Request URI: /billing/index
+[2025-05-06 13:27:54] Normalized relative path: /index
+[2025-05-06 13:27:54] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 13:27:54] File not found for route /index: C:\server\www\billing/index.html
+[2025-05-06 13:41:27] Request URI: /billing/login/role=staff
+[2025-05-06 13:41:27] Normalized relative path: /login/role=staff

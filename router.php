@@ -1,5 +1,5 @@
-//billing/router.php
 <?php
+//billing/router.php
 /**
  * Router for Billing System
  */
@@ -120,14 +120,43 @@ if ($relative_path === '/server.php' || strpos($relative_path, '/server.php?') =
 }
 if ($relative_path === '/notification.php' || strpos($relative_path, '/notification.php?') === 0) {
     route_log("Routing to notification.php");
-    require_once __DIR__ . '/notification.php';
-    exit;
-}
-if ($relative_path === '/db-check.php') { // db-check needs layout
-    $pageTitle = "Database Connection Check";
-    include __DIR__ . '/layout_header.php';
-    include __DIR__ . '/db-check.php';
-    include __DIR__ . '/layout_footer.php';
+    // Ensure we're setting proper content type for AJAX responses
+    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest' ||
+        isset($_POST['popup_action'])) {
+        // For AJAX requests, we want to catch PHP errors and return them as JSON
+        ob_start(); // Start output buffering
+        try {
+            require_once __DIR__ . '/notification.php';
+        } catch (Exception $e) {
+            $error = ob_get_clean(); // Get any output so far
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Server error: ' . $e->getMessage(),
+                'debug' => $error
+            ]);
+            exit;
+        }
+        
+        // If we got here and haven't output anything yet, check if the buffer contains errors
+        $output = ob_get_clean();
+        if (!empty($output) && strpos($output, '{') !== 0) { // Not JSON
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Invalid server response',
+                'debug' => $output
+            ]);
+            exit;
+        }
+        
+        // Otherwise, return whatever was in the buffer
+        echo $output;
+    } else {
+        // For non-AJAX requests
+        require_once __DIR__ . '/notification.php';
+    }
     exit;
 }
 
@@ -191,29 +220,48 @@ if (isset($page_routes[$relative_path])) {
         if (pathinfo($file_to_include, PATHINFO_EXTENSION) === 'php') {
             // For .php files like logout.php, include them directly without layout
             include $file_to_include;
-        } else {
-            // For .html content files, wrap with layout
-            include __DIR__ . '/layout_header.php'; // $pageTitle is used here
-            include $file_to_include;
-            include __DIR__ . '/layout_footer.php';
-        }
+        } 
         exit;
     } else {
         route_log("File not found for route {$relative_path}: {$file_to_include}");
     }
 }
 
+// --- Simple router to handle HTML to PHP conversions ---
+// Get the requested URI
+$request_uri = $_SERVER['REQUEST_URI'];
+
+// Remove query string if present
+if (strpos($request_uri, '?') !== false) {
+    $request_uri = substr($request_uri, 0, strpos($request_uri, '?'));
+}
+
+// Check if this is an HTML file request
+if (preg_match('/\.html$/', $request_uri)) {
+    // Convert to PHP equivalent
+    $php_file = preg_replace('/\.html$/', '.php', $request_uri);
+    
+    // Check if PHP file exists
+    $file_path = __DIR__ . $php_file;
+    if (file_exists($file_path)) {
+        // Redirect to PHP version
+        header('Location: ' . $php_file . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : ''));
+        exit;
+    }
+}
+
+// Continue with normal execution
+return false;
+
 // --- 404 Not Found ---
 route_log("404 Not Found for relative path: {$relative_path}");
 header("HTTP/1.0 404 Not Found");
 $pageTitle = "404 Not Found"; // For the layout
-include __DIR__ . '/layout_header.php';
 echo "<div class='container text-center glass mt-5'>";
 echo "<h1 class='page-title' style='color:var(--error);'>404 Not Found</h1>"; // Override H1 style for error
 echo "<p>The page you requested at <code>" . htmlspecialchars($request_uri) . "</code> could not be found.</p>";
 echo "<p>We apologize for the inconvenience.</p>";
 echo "<a href='{$base_path}/index' class='btn mt-3'>Go to Homepage</a>";
 echo "</div>";
-include __DIR__ . '/layout_footer.php';
 exit;
 ?>

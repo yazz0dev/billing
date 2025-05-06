@@ -1,9 +1,9 @@
-//billing/notification.php`** (Minor improvements for robustness)
 
 <?php
 /**
  * Centralized Popup Notification System
  */
+//billing/notification.php`** (Minor improvements for robustness)
 
 // Ensure vendor autoload is loaded if not already by router
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {

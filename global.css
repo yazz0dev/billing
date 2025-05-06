@@ -1,6 +1,8 @@
-/*billing/global.css*/
+/*billing/global.css - version 1.0.1*/
 
+/* Force browser to reload the stylesheet and not use cached version */
 :root {
+    --css-loaded: "yes";
     --primary: #4f46e5;
     --primary-dark: #4338ca;
     --secondary: #06b6d4;
@@ -961,6 +963,146 @@ body.dark-mode .popup-notification-modal-btn-cancel:hover {
     transform: translateY(-2px); /* Subtle lift */
 }
 
+/* Topbar icon styling - added to fix oversized icons */
+.topbar .logo-icon {
+    width: 24px;
+    height: 24px;
+    stroke-width: 1.75px;
+}
+
+.topbar .nav-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+}
+
+.topbar .icon-sun,
+.topbar .icon-moon {
+    width: 20px;
+    height: 20px;
+}
+
+.topbar .icon-bell {
+    width: 20px;
+    height: 20px;
+}
+
+.topbar .icon-chevron {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.topbar .dropdown-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 0.5rem;
+    opacity: 0.8;
+}
+
+.topbar .user-avatar svg {
+    width: 20px;
+    height: 20px;
+}
+
+.mobile-menu-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Ensure proper vertical alignment of icons with text */
+.topbar-nav-item a,
+.dropdown-item {
+    display: flex;
+    align-items: center;
+}
+
+/* For mobile responsiveness */
+@media (max-width: 480px) {
+    .topbar .nav-icon {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .topbar .logo-icon {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+/* Topbar icon sizing fixes - targeting specific elements with higher specificity */
+.topbar svg.logo-icon {
+    width: 24px !important;
+    height: 24px !important;
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.topbar svg.nav-icon {
+    width: 18px !important;
+    height: 18px !important;
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.topbar .icon-sun,
+.topbar .icon-moon {
+    width: 18px !important;
+    height: 18px !important;
+    display: inline-block;
+}
+
+.topbar .icon-bell {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+.topbar .user-avatar svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+.topbar .icon-chevron {
+    width: 14px !important;
+    height: 14px !important;
+    margin-left: 4px;
+}
+
+.topbar .dropdown-icon {
+    width: 16px !important;
+    height: 16px !important;
+    margin-right: 8px;
+}
+
+.mobile-menu-toggle svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+/* Improve alignment of elements containing icons */
+.topbar-nav-item a,
+.dropdown-item {
+    display: flex !important;
+    align-items: center !important;
+}
+
+.theme-toggle,
+.notification-btn,
+.user-profile-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Fix notification panel icons */
+.notification-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -990,4 +1132,28 @@ body.dark-mode .popup-notification-modal-btn-cancel:hover {
     .popup-notification-modal-btn { width: 100%; } /* Full width buttons in stacked footer */
     .homepage-cards-container { gap: 1.5rem; }
     .homepage-login-card.glass { width: 100%; max-width: 320px; }
+}
+
+/* CSS Load Indicator - add to the end of the file */
+body::after {
+    content: '';
+    position: fixed;
+    bottom: 5px;
+    right: 5px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--success);
+    border-radius: 50%;
+    z-index: 10000;
+    opacity: 0.7;
+    box-shadow: 0 0 5px var(--success);
+    pointer-events: none;
+    animation: pulse 2s infinite;
+    display: var(--debug-css, none);
+}
+
+@keyframes pulse {
+    0% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(1.3); }
+    100% { opacity: 0.7; transform: scale(1); }
 }

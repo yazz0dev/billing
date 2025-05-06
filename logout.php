@@ -1,5 +1,5 @@
-// billing/logout.php
 <?php
+// billing/logout.php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
