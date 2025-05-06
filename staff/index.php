@@ -58,7 +58,7 @@ require_once '../includes/header.php';
                 <tfoot>
                     <tr>
                         <td colspan="3" class="text-right"><strong>Grand Total:</strong></td>
-                        <td id="grandTotal">$0.00</td>
+                        <td id="grandTotal">₹0.00</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -90,7 +90,17 @@ require_once '../includes/header.php';
     document.addEventListener('DOMContentLoaded', async () => {
         try {
             const response = await fetch('/billing/server.php?action=getProducts');
-            products = await response.json();
+            const rawProducts = await response.json();
+            
+            // Process products to ensure proper ID format
+            products = rawProducts.map(product => {
+                return {
+                    id: product._id.$oid || product.id, // Get ID from MongoDB format or fallback
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    stock: product.stock
+                };
+            });
             
             // Populate datalist for product search
             productListDatalist.innerHTML = products.map(product => 
@@ -163,7 +173,7 @@ require_once '../includes/header.php';
         if (cart.length === 0) {
             emptyCartRow.style.display = 'table-row';
             generateBillBtn.disabled = true;
-            grandTotalElement.textContent = '$0.00';
+            grandTotalElement.textContent = '₹0.00';
             return;
         }
         
@@ -184,9 +194,9 @@ require_once '../includes/header.php';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${item.product_name}</td>
-                <td>$${item.price.toFixed(2)}</td>
+                <td>₹${item.price.toFixed(2)}</td>
                 <td>${item.quantity}</td>
-                <td>$${item.total.toFixed(2)}</td>
+                <td>₹${item.total.toFixed(2)}</td>
                 <td>
                     <button class="btn" style="padding: 0.3rem 0.6rem; background: linear-gradient(135deg, #ef4444, #f43f5e);" 
                         onclick="removeFromCart(${index})">Remove</button>
@@ -197,7 +207,7 @@ require_once '../includes/header.php';
         });
         
         // Update grand total
-        grandTotalElement.textContent = `$${grandTotal.toFixed(2)}`;
+        grandTotalElement.textContent = `₹${grandTotal.toFixed(2)}`;
     }
     
     // Remove item from cart
@@ -235,7 +245,7 @@ require_once '../includes/header.php';
                     `<h3>Bill #${result.bill_id} Generated</h3>
                     <p>Date: ${new Date().toLocaleString()}</p>
                     <p>Total Items: ${cart.length}</p>
-                    <p>Total Amount: $${totalAmount}</p>
+                    <p>Total Amount: ₹${totalAmount}</p>
                     <p>Thank you for your purchase!</p>`,
                     function() {
                         // Clear cart after bill is generated

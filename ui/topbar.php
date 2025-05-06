@@ -300,6 +300,10 @@ window.notificationCircuitBreaker = {
 
 document.addEventListener('DOMContentLoaded', function() {
     // Set PHP session data for JavaScript
+    const userHasBillingAccess = <?php echo (isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['admin', 'staff'])) ? 'true' : 'false'; ?>;
+    const userIsAdmin = <?php echo (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') ? 'true' : 'false'; ?>;
+
+
     window.userSessionData = {
         name: "<?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'User'; ?>",
         role: "<?php echo isset($_SESSION['user_role']) ? htmlspecialchars($_SESSION['user_role']) : ''; ?>",

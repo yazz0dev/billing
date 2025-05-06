@@ -254,6 +254,152 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                 }
                 break;
                 
+            case 'generateBill':
+                // This action expects a JSON payload, $data should hold it.
+                if (!isset($data['items']) || !is_array($data['items']) || empty($data['items'])) {
+                    $response = ['success' => false, 'message' => 'No items provided or invalid format for bill generation.'];
+                    http_response_code(400);
+                    break;
+                }
+
+                $items = $data['items'];
+                $totalAmount = 0;
+                $billItemsDetails = [];
+                
+                if (!isset($db) || !property_exists($db, 'client') || !$db->client instanceof MongoDB\Client) {
+                    $response = ['success' => false, 'message' => 'Database client not available.'];
+                    http_response_code(500);
+                    error_log("GenerateBill Error: Database client not configured.");
+                    break;
+                }
+                
+                $session = null; // Initialize session variable
+                try {
+                    $session = $db->client->startSession();
+                    $session->startTransaction();
+
+                    foreach ($items as $item) {
+                        if (!isset($item['product_id']) || !isset($item['quantity']) || !isset($item['price'])) {
+                            throw new Exception("Invalid item data in cart. Product ID, quantity, and price are required.");
+                        }
+                        $productIdStr = $item['product_id'];
+                        $quantity = (int)$item['quantity'];
+                        $pricePerUnit = (float)$item['price'];
+
+                        if ($quantity <= 0) {
+                            throw new Exception("Invalid quantity for product ID: " . $productIdStr);
+                        }
+                        if ($pricePerUnit < 0) { 
+                            throw new Exception("Invalid price for product ID: " . $productIdStr);
+                        }
+
+                        $mongoProductId = new MongoDB\BSON\ObjectId($productIdStr);
+                        $product = $db->products->findOne(['_id' => $mongoProductId], ['session' => $session]);
+
+                        if (!$product) {
+                            throw new Exception("Product not found: ID " . $productIdStr);
+                        }
+
+                        if ($product->stock < $quantity) {
+                            throw new Exception("Insufficient stock for product: " . htmlspecialchars($product->name) . ". Available: " . $product->stock . ", Requested: " . $quantity);
+                        }
+
+                        $newStock = $product->stock - $quantity;
+                        $updateResult = $db->products->updateOne(
+                            ['_id' => $mongoProductId],
+                            ['$set' => ['stock' => $newStock]],
+                            ['session' => $session]
+                        );
+
+                        if ($updateResult->getModifiedCount() !== 1) {
+                            throw new Exception("Failed to update stock for product: " . htmlspecialchars($product->name));
+                        }
+                        
+                        $itemTotal = $quantity * $pricePerUnit;
+                        $totalAmount += $itemTotal;
+                        $billItemsDetails[] = [
+                            'product_id' => $mongoProductId,
+                            'product_name' => $product->name,
+                            'quantity' => $quantity,
+                            'price_per_unit' => $pricePerUnit,
+                            'item_total' => $itemTotal
+                        ];
+
+                        $lowStockThreshold = $product->low_stock_threshold ?? 5; 
+                        if ($newStock > 0 && $newStock <= $lowStockThreshold) {
+                            $notificationSystem->saveNotification(
+                                "Low stock warning: '".htmlspecialchars($product->name)."' has only {$newStock} units left.",
+                                'warning', 'admin', 0, "Low Stock Alert"
+                            );
+                        } elseif ($newStock == 0) {
+                             $notificationSystem->saveNotification(
+                                "Out of stock: '".htmlspecialchars($product->name)."' is now out of stock.",
+                                'error', 'admin', 0, "Out of Stock"
+                            );
+                        }
+                    }
+
+                    $billData = [
+                        'items' => $billItemsDetails,
+                        'total_amount' => $totalAmount,
+                        'created_at' => new MongoDB\BSON\UTCDateTime(),
+                        'user_id' => $_SESSION['user_id'] ?? null, 
+                        'username' => $_SESSION['username'] ?? 'N/A' 
+                    ];
+                    $insertResult = $db->bill_new->insertOne($billData, ['session' => $session]);
+
+                    if (!$insertResult->getInsertedId()) {
+                        throw new Exception("Failed to save the bill.");
+                    }
+                    
+                    $session->commitTransaction();
+                    
+                    $response = [
+                        'success' => true,
+                        'message' => 'Bill generated successfully.',
+                        'bill_id' => (string)$insertResult->getInsertedId()
+                    ];
+                    
+                    $notificationSystem->saveNotification(
+                        "New bill #{$insertResult->getInsertedId()} generated. Total: ₹" . number_format($totalAmount, 2),
+                        'info', 'admin', 7000, "Bill Generated"
+                    );
+
+                } catch (MongoDB\Exception\InvalidArgumentException $e) { 
+                    if ($session && $session->isInTransaction()) {
+                        $session->abortTransaction();
+                    }
+                    $response = ['success' => false, 'message' => "Invalid data for MongoDB operation: " . $e->getMessage()];
+                    http_response_code(400); 
+                    error_log("GenerateBill MongoDB InvalidArgumentException: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                } catch (MongoDB\Driver\Exception\Exception $e) { 
+                    if ($session && $session->isInTransaction()) {
+                        $session->abortTransaction();
+                    }
+                    $response = ['success' => false, 'message' => "MongoDB Driver Error: " . $e->getMessage()];
+                    http_response_code(500); 
+                    error_log("GenerateBill MongoDB Driver Exception: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                } catch (Exception $e) { 
+                    if ($session && $session->isInTransaction()) {
+                        $session->abortTransaction();
+                    }
+                    $response = ['success' => false, 'message' => "Error generating bill: " . $e->getMessage()];
+                    http_response_code(500); 
+                    error_log("GenerateBill Exception: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                } catch (Throwable $t) { // Catch all other throwables (PHP 7+ Errors)
+                    if ($session && $session->isInTransaction()) {
+                        $session->abortTransaction();
+                    }
+                    $response = ['success' => false, 'message' => "Critical error generating bill: " . $t->getMessage()];
+                    http_response_code(500);
+                    error_log("GenerateBill Throwable: " . $t->getMessage() . "\nTrace: " . $t->getTraceAsString());
+                } finally {
+                    if ($session) { 
+                        $session->endSession();
+                    }
+                }
+                break;
+
             // Add other JSON-based actions here
         }
     } catch (Exception $e) { // Catch errors from json_decode or other early issues
@@ -395,6 +541,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                         $response['message'] = 'Invalid username or password.';
                     }
                 }
+                break;
+
+            // case 'generateBill': // This case is now moved to the JSON POST handling block above
+            //     // ... (logic was here) ...
+            //     break;
+
+            default:
+                // $response is already set to the default error message for unknown/unmatched action
+                http_response_code(400); // Bad Request
                 break;
         }
     } catch (MongoDB\Exception\InvalidArgumentException $e) {
