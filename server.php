@@ -15,8 +15,24 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     }
 }
 
+// Include configuration file
+if (file_exists(__DIR__ . '/config.php')) {
+    require_once __DIR__ . '/config.php';
+} else {
+    if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
+        // This case should ideally not happen if router is entry point
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Server configuration error: config.php not found.']);
+        exit;
+    }
+}
+
 // Include notification system (it also loads its own autoloader if needed)
 require_once 'notification.php'; // NotificationSystem class
+
+// Import MongoDB Server API
+use MongoDB\Driver\ServerApi;
 
 // Initialize MongoDB client and NotificationSystem
 $mongoClient = null;
@@ -24,9 +40,32 @@ $db = null;
 $notificationSystem = null;
 
 try {
-    $mongoClient = new MongoDB\Client("mongodb://localhost:27017", [], ['serverSelectionTimeoutMS' => 3000]);
+    // Use the MongoDB URI from config.php
+    $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
+    
+    // Set the version of the Stable API on the client
+    $apiVersion = new ServerApi(ServerApi::V1);
+    
+    // Create a new client and connect to the server
+    $mongoClient = new MongoDB\Client($uri, [], ['serverApi' => $apiVersion, 'serverSelectionTimeoutMS' => 5000]);
     $db = $mongoClient->selectDatabase('billing');
     $notificationSystem = new NotificationSystem(); // It has its own DB connection logic
+    
+    // Check and create missing collections if needed
+    $existingCollections = [];
+    foreach ($db->listCollections() as $collection) {
+        $existingCollections[] = $collection->getName();
+    }
+    
+    // Check for required collections and create if missing
+    $requiredCollections = ['user', 'products', 'bill', 'popup_notifications'];
+    foreach ($requiredCollections as $collectionName) {
+        if (!in_array($collectionName, $existingCollections)) {
+            $db->createCollection($collectionName);
+            error_log("Created missing collection: {$collectionName}");
+        }
+    }
+    
 } catch (Exception $e) {
     // If DB connection fails at this top level, critical error for most operations
     if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
@@ -72,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                          $response['message'] = "Invalid product data provided.";
                          break;
                     }
-                    $db->product->insertOne($product);
+                    $db->products->insertOne($product);
                     $notificationSystem->saveNotification(
                         "New product '{$product['name']}' (₹{$product['price']}) added.",
                         'success', 'all', 7000, "Product Added"
@@ -90,9 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         break;
                     }
 
-                    $product = $db->product->findOne(['_id' => $productId]);
+                    $product = $db->products->findOne(['_id' => $productId]);
                     if ($product && $product->stock >= $quantity) {
-                        $db->product->updateOne(
+                        $db->products->updateOne(
                             ['_id' => $productId],
                             ['$inc' => ['stock' => -$quantity]]
                         );
@@ -135,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $username = filter_var(trim($_POST['username']), FILTER_SANITIZE_STRING);
                     $password = $_POST['password'];
 
-                    $user = $db->users->findOne(['username' => $username]);
+                    $user = $db->user->findOne(['username' => $username]);
                     if ($user && isset($user->password) && password_verify($password, $user->password)) {
                         $_SESSION['user_id'] = (string) $user->_id;
                         $_SESSION['username'] = $user->username;
@@ -175,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         switch ($action) {
             case 'getProducts':
-                $products = $db->product->find([], ['sort' => ['name' => 1]])->toArray();
+                $products = $db->products->find([], ['sort' => ['name' => 1]])->toArray();
                 $response = $products; // Direct array response
                 break;
 

@@ -179,17 +179,17 @@ if (preg_match('/^\/global\.css$/', $relative_path)) {
 // --- Page Routes ---
 $page_routes = [
     // Route path       => [File path, Page Title, Role required (null for public)]
-    '/index'            => [__DIR__ . '/index.html', 'Homepage', null],
-    '/login'            => [__DIR__ . '/login/index.html', 'Login', null],
+    '/index'            => [__DIR__ . '/index.php', 'Homepage', null], // Changed .html to .php
+    '/login'            => [__DIR__ . '/login/index.php', 'Login', null], // Changed .html to .php
 
-    '/admin'            => [__DIR__ . '/admin/index.html', 'Admin Dashboard', 'admin'],
-    '/admin/dashboard'  => [__DIR__ . '/admin/index.html', 'Admin Dashboard', 'admin'], // Alias or specific file
+    '/admin'            => [__DIR__ . '/admin/index.php', 'Admin Dashboard', 'admin'], // Changed .html to .php
+    '/admin/dashboard'  => [__DIR__ . '/admin/index.php', 'Admin Dashboard', 'admin'], // Alias or specific file
 
-    '/staff'            => [__DIR__ . '/staff/index.html', 'Staff Billing', ['admin', 'staff']],
-    '/staff/billview'   => [__DIR__ . '/staff/billview.html', 'Bill History', ['admin', 'staff']],
+    '/staff'            => [__DIR__ . '/staff/index.php', 'Staff Billing', ['admin', 'staff']], // Changed .html to .php
+    '/staff/billview'   => [__DIR__ . '/staff/billview.php', 'Bill History', ['admin', 'staff']], // Changed .html to .php
 
-    '/product'          => [__DIR__ . '/product/index.html', 'Product Management', 'admin'], // Typically admin
-    '/logout'           => [__DIR__ . '/logout.php', 'Logout', null], // logout.php will handle redirect
+    '/product'          => [__DIR__ . '/product/index.php', 'Product Management', 'admin'], // Changed .html to .php
+    '/logout'           => [__DIR__ . '/logout.php', 'Logout', null],
 ];
 
 if (isset($page_routes[$relative_path])) {

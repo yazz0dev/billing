@@ -1,4 +1,17 @@
 <?php
+// Check authentication FIRST - before any output
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Check if user is staff or admin
+if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] !== 'staff' && $_SESSION['user_role'] !== 'admin')) {
+    // Redirect unauthorized users
+    header('Location: /billing/login.php?error=unauthorized');
+    exit;
+}
+
+
 $pageTitle = "Bill History";
 $bodyClass = "";
 

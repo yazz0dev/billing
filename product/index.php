@@ -68,14 +68,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Add product form submission
     addProductForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        const productData = {
-            name: formData.get('name'),
-            price: parseFloat(formData.get('price')),
-            stock: parseInt(formData.get('stock'))
-        };
+    e.preventDefault();
+    
+    const submitFormData = new FormData(this); // Use the form directly
+    submitFormData.append('action', 'addProduct'); // Add action to FormData
+    
+    try {
+        const response = await fetch('/billing/server.php', { // Action removed from URL
+            method: 'POST',
+            body: submitFormData // Send FormData
+            // 'Content-Type' header is automatically set by browser for FormData
+        });
         
         try {
             const response = await fetch('/billing/server.php?action=addProduct', {

@@ -59,3 +59,15 @@
 [2025-05-06 13:27:54] File not found for route /index: C:\server\www\billing/index.html
 [2025-05-06 13:41:27] Request URI: /billing/login/role=staff
 [2025-05-06 13:41:27] Normalized relative path: /login/role=staff
+[2025-05-06 14:08:53] Request URI: /billing/index
+[2025-05-06 14:08:53] Normalized relative path: /index
+[2025-05-06 14:08:53] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 14:08:53] File not found for route /index: C:\server\www\billing/index.html
+[2025-05-06 14:09:21] Request URI: /billing/index
+[2025-05-06 14:09:21] Normalized relative path: /index
+[2025-05-06 14:09:21] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 14:09:21] File not found for route /index: C:\server\www\billing/index.html
+[2025-05-06 14:19:34] Request URI: /billing/index
+[2025-05-06 14:19:34] Normalized relative path: /index
+[2025-05-06 14:19:34] Matched page route: /index -> C:\server\www\billing/index.html
+[2025-05-06 14:19:34] File not found for route /index: C:\server\www\billing/index.html

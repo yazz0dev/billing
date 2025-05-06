@@ -1,9 +1,13 @@
-
 <?php
 /**
  * Centralized Popup Notification System
  */
 //billing/notification.php`** (Minor improvements for robustness)
+
+// Include configuration file
+if (file_exists(__DIR__ . '/config.php')) {
+    require_once __DIR__ . '/config.php';
+}
 
 // Ensure vendor autoload is loaded if not already by router
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
@@ -26,7 +30,8 @@ class NotificationSystem {
 
     public function __construct() {
         try {
-            $this->client = new MongoDB\Client("mongodb://localhost:27017", [], ['serverSelectionTimeoutMS' => 3000]);
+            $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
+            $this->client = new MongoDB\Client($uri, [], ['serverSelectionTimeoutMS' => 3000]);
             $this->db = $this->client->selectDatabase('billing'); // Use selectDatabase
         } catch (Exception $e) {
             // Log error and potentially rethrow or handle gracefully
@@ -39,7 +44,8 @@ class NotificationSystem {
         if ($this->db === null) {
             // Attempt to reconnect or throw an error
             try {
-                $this->client = new MongoDB\Client("mongodb://localhost:27017", [], ['serverSelectionTimeoutMS' => 1000]);
+                $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
+                $this->client = new MongoDB\Client($uri, [], ['serverSelectionTimeoutMS' => 1000]);
                 $this->db = $this->client->selectDatabase('billing');
                 if ($this->db === null) throw new Exception("Reconnection failed.");
             } catch (Exception $e) {

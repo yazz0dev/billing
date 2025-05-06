@@ -348,6 +348,91 @@
         }
 
         /**
+         * Check if database connection is working before resuming normal fetching
+         */
+        checkDatabaseConnection() {
+            const formData = new FormData();
+            formData.append('action', 'check_connection');
+            
+            fetch('/billing/db-check.php', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData // Add this line
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'connected') {
+                    console.log('Database connection restored, resuming notification polling');
+                    // Reset counters
+                    this.fetchRetryCount = 0;
+                    this.fetchBackoffTime = 2000;
+                    
+                    // Resume normal polling
+                    if (this.fetchInterval) {
+                        clearInterval(this.fetchInterval);
+                    }
+                    this.fetchInterval = setInterval(() => this.fetchFromServer(), this.options.fetchInterval);
+                    
+                    // Fetch immediately
+                    this.fetchFromServer();
+                } else {
+                    // Still having issues, try again later with backoff
+                    setTimeout(() => this.checkDatabaseConnection(), this.fetchBackoffTime);
+                }
+            })
+            .catch(() => {
+                // Connection check itself failed, try again later
+                setTimeout(() => this.checkDatabaseConnection(), this.fetchBackoffTime);
+            });
+        }
+
+        getDefaultTitle(type) {
+            switch (type) {
+                case 'success': return 'Success';
+                case 'error': return 'Error';
+                case 'warning': return 'Warning';
+                case 'info': return 'Information';
+                default: return 'Notification';
+            }
+        }
+
+        getIconForType(type) {
+            // SVGs are now styled by global.css if needed, ensure they have proper stroke/fill
+            switch (type) {
+                case 'success':
+                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--success, #10b981)">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>`;
+                case 'error':
+                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--error, #ef4444)">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>`;
+                case 'warning':
+                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--warning, #f59e0b)">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>`;
+                case 'info':
+                default:
+                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--info, #3b82f6)">
+                         <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    </svg>`;
+            }
+        }
+    }
+
+    // Store class in window for potential reuse
+    window.PopupNotification = PopupNotification;
+
+    // Initialize global instance only if it doesn't already exist
+    if (!window.popupNotification) {
+        window.popupNotification = new PopupNotification();
+    }
+
+    // Replace native alert with popup notification
+    if (!window._alertOverridden) {
         window._alertOverridden = true;
         window.originalAlert = window.alert;
         window.alert = function(message) {
@@ -473,4 +558,3 @@ window.confirmNotification = function(message, onConfirm, onCancel, options = {}
     return modalId; // Return the modal ID for potential future reference
 
 };
-        
