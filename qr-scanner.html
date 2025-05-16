@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>QR Scanner - BillSys</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 1rem; background-color: #f0f0f0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; box-sizing: border-box; }
+        .container { background-color: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h1 { font-size: 1.5rem; color: #333; margin-bottom: 1rem; }
+        p { color: #555; font-size: 0.9rem; }
+        #pairingSection input { width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        #pairingSection button { background-color: #2563eb; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; width: 100%; }
+        #pairingSection button:hover { background-color: #1d4ed8; }
+        #pairingSection .mt-1 { margin-top: 0.25rem; } /* Simple margin utility */
+        #scannerSection { display: none; margin-top: 1rem; }
+        #qr-reader { width: 100%; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+        #qr-reader__dashboard_section_csr button { background-color: #555 !important; color: white !important; } /* Basic styling for scan region button */
+        #scanResult, #pairingStatus, #errorLog { margin-top: 1rem; font-weight: bold; word-break: break-all; }
+        #scanResult.success { color: green; }
+        #scanResult.error, #errorLog.error { color: red; }
+        #pairingStatus.success { color: green; }
+        #pairingStatus.error { color: red; }
+        .hidden { display: none; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 1rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Phone QR Scanner</h1>
+
+        <div id="pairingSection">
+            <p>Enter the Pairing ID from the main billing screen:</p>
+            <input type="text" id="pairingIdInput" placeholder="e.g., ABCXYZ" autocapitalize="characters">
+            <button id="connectScannerBtn">Connect</button>
+            <p style="font-size: 0.8rem; margin-top: 0.5rem;">Alternatively, scan the Pairing QR from the main screen:</p>
+            <button id="scanPairingQrBtn" class="mt-1" style="background-color: #0d9488;">Scan Pairing QR</button>
+        </div>
+
+        <div id="scannerSection">
+            <p>Point your camera at a product QR code.</p>
+            <div id="qr-reader"></div>
+            <p id="scanResult"></p>
+        </div>
+        
+        <div id="pairingStatus"></div>
+        <div id="errorLog"></div>
+        <div id="loadingIndicator" class="loader hidden"></div>
+
+    </div>
+
+    <!-- HTML5 QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <!-- Embedded Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pairingSection = document.getElementById('pairingSection');
+            const scannerSection = document.getElementById('scannerSection');
+            const pairingIdInput = document.getElementById('pairingIdInput');
+            const connectScannerBtn = document.getElementById('connectScannerBtn');
+            const scanPairingQrBtn = document.getElementById('scanPairingQrBtn');
+            const qrReaderDiv = document.getElementById('qr-reader');
+            const scanResultEl = document.getElementById('scanResult');
+            const pairingStatusEl = document.getElementById('pairingStatus');
+            const errorLogEl = document.getElementById('errorLog');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            let html5QrCode;
+            let currentPairingId = null;
+            let isScanningPairingQr = false;
+
+            const API_BASE_URL = '/billing/server.php'; // Assuming your server.php is at this path relative to the domain root
+
+            function showLoading(show) {
+                loadingIndicator.classList.toggle('hidden', !show);
+            }
+
+            function displayPairingStatus(message, isSuccess = true) {
+                pairingStatusEl.textContent = message;
+                pairingStatusEl.className = isSuccess ? 'success' : 'error';
+            }
+
+            function displayScanResult(message, isSuccess = true) {
+                scanResultEl.textContent = message;
+                scanResultEl.className = isSuccess ? 'success' : 'error';
+                setTimeout(() => scanResultEl.textContent = '', 3000); // Clear after 3s
+            }
+            
+            function displayError(message) {
+                errorLogEl.textContent = message;
+                errorLogEl.className = 'error';
+                console.error(message);
+                setTimeout(() => errorLogEl.textContent = '', 5000); // Clear after 5s
+            }
+
+            function startProductScanner() {
+                if (!currentPairingId) {
+                    displayError("Cannot start product scanner without a valid pairing ID.");
+                    return;
+                }
+                pairingSection.style.display = 'none';
+                scannerSection.style.display = 'block';
+                scanResultEl.textContent = "Ready to scan products...";
+                isScanningPairingQr = false; 
+
+                if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop().catch(err => console.warn("Could not stop previous scan:", err));
+                }
+                html5QrCode = new Html5Qrcode("qr-reader");
+                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                    sendScannedProduct(decodedText);
+                };
+                const config = { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true };
+
+                html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                    .catch(err => {
+                        displayError("QR Scanner Error: " + err);
+                        resetToPairingUI();
+                    });
+            }
+            
+            function startPairingQrScanner() {
+                pairingSection.style.display = 'none';
+                scannerSection.style.display = 'block'; 
+                scanResultEl.textContent = "Scanning for Pairing QR Code...";
+                isScanningPairingQr = true;
+
+                if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop().catch(err => console.warn("Could not stop previous scan:", err));
+                }
+                html5QrCode = new Html5Qrcode("qr-reader");
+                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                    pairingIdInput.value = decodedText;
+                    stopScanner(); 
+                    connectScanner(); 
+                };
+                const config = { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true };
+
+                html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                    .catch(err => {
+                        displayError("Pairing QR Scanner Error: " + err);
+                        resetToPairingUI();
+                    });
+            }
+
+            async function connectScanner() {
+                const pairingId = pairingIdInput.value.trim().toUpperCase();
+                if (!pairingId) {
+                    displayPairingStatus("Pairing ID cannot be empty.", false);
+                    return;
+                }
+                currentPairingId = pairingId; 
+                displayPairingStatus(`Attempting to connect with ID: ${currentPairingId}...`, true);
+                showLoading(true);
+
+                // Simple validation by trying to send a "ping" or a known "connect" product ID
+                // Or just proceed and let the first product scan validate
+                // For this version, we'll assume successful connection attempt locally and start scanner.
+                // The first `sendScannedProduct` call will truly validate.
+                
+                // Simulate a small delay for connection attempt feedback
+                setTimeout(() => {
+                    showLoading(false);
+                    // Check if server rejected the pairing ID during first product scan
+                    if (currentPairingId) { // if still valid after potential rejection
+                        displayPairingStatus(`Connected with ID: ${currentPairingId}. Ready to scan products.`, true);
+                        startProductScanner();
+                    } else {
+                        // This case would be handled if sendScannedProduct failed and cleared currentPairingId
+                        displayPairingStatus("Pairing failed. Please try again.", false);
+                        resetToPairingUI();
+                    }
+                }, 500);
+            }
+
+            async function sendScannedProduct(productId) {
+                if (!currentPairingId) {
+                    displayScanResult("Not paired. Cannot send product.", false);
+                    resetToPairingUI();
+                    return;
+                }
+                showLoading(true);
+                scanResultEl.textContent = `Sending ${productId}...`;
+
+                const formData = new FormData();
+                formData.append('action', 'submitScannedProduct');
+                formData.append('pairing_id', currentPairingId);
+                formData.append('scanned_product_id', productId);
+
+                try {
+                    const response = await fetch(API_BASE_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        displayScanResult(`Product ID ${productId} sent successfully.`, true);
+                    } else {
+                        displayScanResult(`Failed to send ${productId}: ${result.message}`, false);
+                        if (result.message && (result.message.toLowerCase().includes("pairing id not found") || result.message.toLowerCase().includes("expired"))) {
+                            currentPairingId = null;
+                            displayPairingStatus("Pairing failed or expired. Please re-enter Pairing ID.", false);
+                            resetToPairingUI();
+                        }
+                    }
+                } catch (error) {
+                    displayScanResult(`Error sending product: ${error.message}`, false);
+                    displayError("Network or server error during product submission.");
+                } finally {
+                    showLoading(false);
+                }
+            }
+            
+            function stopScanner() {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    return html5QrCode.stop()
+                        .then(() => {
+                             console.log("QR Code scanning stopped.");
+                             qrReaderDiv.innerHTML = ""; // Clear the div to prevent multiple scanner UIs
+                        })
+                        .catch(err => {
+                             console.error("Failed to stop QR Code scanner.", err);
+                        });
+                }
+                return Promise.resolve(); // Return resolved promise if not scanning
+            }
+
+            function resetToPairingUI() {
+                stopScanner().finally(() => {
+                    pairingSection.style.display = 'block';
+                    scannerSection.style.display = 'none';
+                    pairingIdInput.value = ''; // Clear input
+                    currentPairingId = null;
+                });
+            }
+
+            connectScannerBtn.addEventListener('click', connectScanner);
+            scanPairingQrBtn.addEventListener('click', () => {
+                stopScanner().then(() => { // Ensure any active scan is stopped first
+                    startPairingQrScanner();
+                });
+            });
+            
+            // Attempt to get camera access on load to provide early feedback/prompt
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    console.log("Cameras available:", devices);
+                } else {
+                    displayError("No cameras found. Ensure camera is enabled and permissions are granted.");
+                }
+            }).catch(err => {
+                displayError("Camera access error: " + err.message + ". Please allow camera access in your browser settings.");
+            });
+        });
+    </script>
+</body>
+</html>
