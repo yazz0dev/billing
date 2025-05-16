@@ -55,7 +55,7 @@ try {
     if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
         throw new Exception("Autoloader not found. This is a critical error.");
     }
-    $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
+    $uri = defined('mongodb_uri') ? MONGODB_URI : 'mongodb://localhost:27017';
     $uriOptions = [];
     $driverOptions = ['serverSelectionTimeoutMS' => 10000, 'connectTimeoutMS' => 15000];
 
