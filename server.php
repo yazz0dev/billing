@@ -24,6 +24,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
 } else {
     if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
+        // This case should ideally not happen if router is entry point
     } else {
         header('Content-Type: application/json');
         echo json_encode(['status' => 'error', 'message' => 'Server configuration error: Autoloader not found.']);
@@ -35,6 +36,7 @@ if (file_exists(__DIR__ . '/config.php')) {
     require_once __DIR__ . '/config.php';
 } else {
     if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
+        // This case should ideally not happen if router is entry point
     } else {
         header('Content-Type: application/json');
         echo json_encode(['status' => 'error', 'message' => 'Server configuration error: config.php not found.']);
@@ -73,7 +75,7 @@ try {
         } catch (Exception $e) {
             error_log("MongoDB connection attempt {$connectionAttempts} failed: " . $e->getMessage());
             if ($connectionAttempts >= $maxAttempts) throw $e;
-            usleep(pow(2, $connectionAttempts - 1) * 100000);
+            usleep(pow(2, $connectionAttempts - 1) * 100000); // Exponential backoff
         }
     }
     $db = $mongoClient->selectDatabase('billing');
@@ -88,10 +90,10 @@ try {
         if (!in_array($collectionName, $existingCollections)) {
             $db->createCollection($collectionName);
             if ($collectionName === 'pairing_sessions') {
-                $db->pairing_sessions->createIndex(['staff_user_id' => 1, 'status' => 1]);
-                $db->pairing_sessions->createIndex(['pairing_token' => 1], ['unique' => true, 'partialFilterExpression' => ['pairing_token' => ['$exists' => true]]]);
-                $db->pairing_sessions->createIndex(['token_expires_at' => 1], ['expireAfterSeconds' => 0]); // TTL for tokens
-                $db->pairing_sessions->createIndex(['session_expires_at' => 1], ['expireAfterSeconds' => 0]); // TTL for sessions
+                // Ensures only one active or pending session per staff user
+                $db->pairing_sessions->createIndex(['staff_user_id' => 1, 'status' => 1]); 
+                // TTL for automatic cleanup of old sessions
+                $db->pairing_sessions->createIndex(['session_expires_at' => 1], ['expireAfterSeconds' => 0]);
             }
         }
     }
@@ -115,7 +117,7 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 $response = ['success' => false, 'message' => 'Invalid request.']; // Default response
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? ($_GET['action'] ?? null); // Allow action in GET for JSON POST
+    $action = $_POST['action'] ?? ($_GET['action'] ?? null); 
     $isJsonRequest = isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') !== false;
     $data = [];
 
@@ -123,21 +125,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $jsonInput = file_get_contents('php://input');
         $data = json_decode($jsonInput, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            echo json_encode(['success' => false, 'message' => 'Invalid JSON: ' . json_last_error_msg()]);
+            $response = ['success' => false, 'message' => 'Invalid JSON: ' . json_last_error_msg()];
+            if (!headers_sent()) { header('Content-Type: application/json');}
+            echo json_encode($response);
             exit;
         }
     } else {
-        $data = $_POST; // Use $_POST for form-data
+        $data = $_POST; 
     }
     
     if (!$action) {
-        echo json_encode(['success' => false, 'message' => 'Action not specified.']);
+        $response = ['success' => false, 'message' => 'Action not specified.'];
+        if (!headers_sent()) { header('Content-Type: application/json');}
+        echo json_encode($response);
         exit;
     }
 
     try {
         switch ($action) {
-            case 'addProduct': // From Admin or Product page form
+            case 'addProduct':
                 if (isset($data['name'], $data['price'], $data['stock'])) {
                     $product = [
                         'name' => filter_var($data['name'], FILTER_SANITIZE_STRING),
@@ -153,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else { $response['message'] = 'Missing product data.'; }
                 break;
 
-            case 'deleteProduct': // From Product page (JSON POST via GET action)
+            case 'deleteProduct':
                  if (isset($data['id'])) {
                     $productIdStr = $data['id']; $mongoId = null;
                     try { $mongoId = new MongoDB\BSON\ObjectId($productIdStr); } catch (Exception $e) { /* Invalid ID */ }
@@ -166,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else { $response['message'] = 'Product ID missing.'; }
                 break;
 
-            case 'updateProduct': // From Product page (JSON POST via GET action)
+            case 'updateProduct':
                 if (isset($data['id'], $data['name'], $data['price'], $data['stock'])) {
                     $productIdStr = $data['id']; $mongoId = null;
                     try { $mongoId = new MongoDB\BSON\ObjectId($productIdStr); } catch (Exception $e) { /* Invalid ID */ }
@@ -185,9 +191,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else { $response['message'] = 'Missing product data.'; }
                 break;
             
-            case 'generateBill': // From POS (JSON POST via GET action)
+            case 'generateBill':
                  if (!isset($data['items']) || !is_array($data['items']) || empty($data['items'])) {
-                    $response = ['message' => 'No items for bill.']; http_response_code(400); break;
+                    $response['message'] = 'No items for bill.'; http_response_code(400); break;
                 }
                 $items = $data['items']; $totalAmount = 0; $billItemsDetails = [];
                 $dbSession = $mongoClient->startSession();
@@ -200,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $mongoProductId = new MongoDB\BSON\ObjectId($productIdStr);
                         $product = $db->products->findOne(['_id' => $mongoProductId], ['session' => $dbSession]);
                         if (!$product) throw new Exception("Product ID {$productIdStr} not found.");
-                        if ($product->stock < $quantity) throw new Exception("Stock issue for {$product->name}.");
+                        if ($product->stock < $quantity) throw new Exception("Stock issue for {$product->name}. Available: {$product->stock}, Req: {$quantity}");
                         $newStock = $product->stock - $quantity;
                         $updateRes = $db->products->updateOne(['_id' => $mongoProductId],['$set' => ['stock' => $newStock]],['session' => $dbSession]);
                         if ($updateRes->getModifiedCount() !== 1) throw new Exception("Stock update failed for {$product->name}.");
@@ -223,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } finally { $dbSession->endSession(); }
                 break;
 
-            case 'authenticateUser': // From Login page form
+            case 'authenticateUser':
                 if (isset($data['username'], $data['password'])) {
                     $username = filter_var(trim($data['username']), FILTER_SANITIZE_STRING);
                     $password = $data['password'];
@@ -237,45 +243,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else { $response['message'] = 'Username/password missing.'; }
                 break;
 
-            case 'initiateMobilePairing': // Desktop POS calls this
+            case 'activateMobileScanning': // Desktop POS calls this
                 if (!isset($_SESSION['user_id'])) { $response['message'] = 'User not authenticated.'; break; }
                 $staff_user_id = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
+                $staff_username = $_SESSION['username'];
+
                 $db->pairing_sessions->updateMany(
-                    ['staff_user_id' => $staff_user_id, '$or' => [['status' => 'awaiting_mobile_scan'], ['status' => 'mobile_paired_active']]],
-                    ['$set' => ['status' => 'superseded', 'pairing_token' => null]]
+                    ['staff_user_id' => $staff_user_id, 'status' => ['$in' => ['desktop_initiated_pairing', 'mobile_active']]],
+                    ['$set' => ['status' => 'superseded_by_desktop']]
                 );
-                $pairing_token = bin2hex(random_bytes(16));
-                $token_expires_at = new MongoDB\BSON\UTCDateTime((time() + 3 * 60) * 1000); // Token valid for 3 mins
-                $session_expires_at = new MongoDB\BSON\UTCDateTime((time() + 8 * 3600) * 1000); // Pairing session 8 hours
-                $pairingSessionData = ['staff_user_id' => $staff_user_id, 'staff_username' => $_SESSION['username'], 'pairing_token' => $pairing_token, 'created_at' => new MongoDB\BSON\UTCDateTime(), 'token_expires_at' => $token_expires_at, 'session_expires_at' => $session_expires_at, 'status' => 'awaiting_mobile_scan', 'mobile_device_identifier' => null, 'scanned_items' => []];
+                $session_expires_at = new MongoDB\BSON\UTCDateTime((time() + 8 * 3600) * 1000);
+                $newPairingSession = ['staff_user_id' => $staff_user_id, 'staff_username' => $staff_username, 'desktop_session_id' => session_id(), 'created_at' => new MongoDB\BSON\UTCDateTime(), 'session_expires_at' => $session_expires_at, 'status' => 'desktop_initiated_pairing', 'scanned_items' => []];
                 try {
-                    $insertResult = $db->pairing_sessions->insertOne($pairingSessionData);
+                    $insertResult = $db->pairing_sessions->insertOne($newPairingSession);
                     if ($insertResult->getInsertedId()) {
-                        $response = ['success' => true, 'pairing_token' => $pairing_token];
-                    } else { $response['message'] = 'Failed to create pairing session.'; }
-                } catch (MongoDB\Driver\Exception\BulkWriteException $e) { $response['message'] = 'Pairing token generation error. Try again.'; error_log("Pairing token insert error: " . $e->getMessage()); }
+                        $response = ['success' => true, 'message' => 'Mobile scanner mode activated. Waiting for mobile.', 'staff_username' => $staff_username];
+                    } else { $response['message'] = 'Failed to create activation session.'; }
+                } catch (Exception $e) { $response['message'] = 'DB error activating session.'; error_log("ActivateMobileScanning Error: ".$e->getMessage());}
                 break;
 
-            case 'confirmMobilePairing': // Mobile client calls after QR scan
-                if (!isset($_SESSION['user_id'], $data['pairing_token'])) { $response['message'] = 'Mobile auth/token missing.'; break; }
-                $mobile_staff_user_id = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
-                $pairing_token = $data['pairing_token'];
-                $sessionDoc = $db->pairing_sessions->findOne(['pairing_token' => $pairing_token, 'status' => 'awaiting_mobile_scan']);
-                if (!$sessionDoc) { $response['message'] = 'Invalid or used pairing token.'; break; }
-                // $sessionDoc->token_expires_at is handled by TTL index now
-                if (!isset($sessionDoc->staff_user_id) || $sessionDoc->staff_user_id != $mobile_staff_user_id) {
-                     $response['message'] = 'User mismatch. Login with same account on both devices.';
-                     error_log("Pairing user mismatch: Desktop by " . (string)($sessionDoc->staff_user_id ?? 'N/A') . ", mobile by " . (string)$mobile_staff_user_id);
-                     break;
-                }
-                $updateResult = $db->pairing_sessions->updateOne(
-                    ['_id' => $sessionDoc->_id],
-                    ['$set' => ['status' => 'mobile_paired_active', 'mobile_device_identifier' => session_id(), 'pairing_token' => null /* Token consumed */]]
+            case 'deactivateMobileScanning': // Desktop POS calls this
+                if (!isset($_SESSION['user_id'])) { $response['message'] = 'User not authenticated.'; break; }
+                $staff_user_id = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
+                $updateResult = $db->pairing_sessions->updateMany(
+                    ['staff_user_id' => $staff_user_id, 'status' => ['$in' => ['desktop_initiated_pairing', 'mobile_active']]],
+                    ['$set' => ['status' => 'completed_by_desktop']]
                 );
-                if ($updateResult->getModifiedCount() > 0) {
-                    $response = ['success' => true, 'message' => 'Mobile paired.'];
-                    $notificationSystem->saveNotification("Scanner paired by {$_SESSION['username']}", 'info', (string)$mobile_staff_user_id, 5000, "Scanner Paired");
-                } else { $response['message'] = 'Failed to update pairing status.'; }
+                $response = ['success' => true, 'message' => 'Mobile scanner mode deactivated.'];
+                if($updateResult->getModifiedCount() > 0) {
+                    $notificationSystem->saveNotification("Mobile scanner deactivated by {$_SESSION['username']}", 'info', (string)$staff_user_id, 3000, "Scanner Deactivated");
+                }
                 break;
 
             case 'submitScannedProduct': // Mobile scanner calls this
@@ -283,26 +280,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $staff_user_id_obj = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
                 $scanned_product_id = trim($data['scanned_product_id']);
                 $quantity = isset($data['quantity']) ? (int)$data['quantity'] : 1;
-                $activePairingSession = $db->pairing_sessions->findOne(['staff_user_id' => $staff_user_id_obj, 'status' => 'mobile_paired_active']);
-                if (!$activePairingSession) { $response['message'] = 'No active pairing. Re-pair.'; break; }
-                // $activePairingSession->session_expires_at is handled by TTL index
+                $activePairingSession = $db->pairing_sessions->findOne(['staff_user_id' => $staff_user_id_obj, 'status' => 'mobile_active']);
+                if (!$activePairingSession) { $response['message'] = 'No active pairing session for scanning. Activate on POS or re-login on mobile.'; break; }
                 $product = null; $mongoProdId = null;
                 try { $mongoProdId = new MongoDB\BSON\ObjectId($scanned_product_id); } catch (Exception $e) { /* Not ObjectId */ }
                 if ($mongoProdId) $product = $db->products->findOne(['_id' => $mongoProdId]);
-                // else { /* Query by other barcode field if supported */ }
                 if (!$product) { $response['message'] = "Product '{$scanned_product_id}' not found."; break; }
                 $newItem = ['product_id' => (string)$product->_id, 'product_name' => $product->name, 'price' => (float)$product->price, 'quantity' => $quantity, 'scanned_at' => new MongoDB\BSON\UTCDateTime(), 'processed' => false];
                 $updateResult = $db->pairing_sessions->updateOne(['_id' => $activePairingSession->_id], ['$push' => ['scanned_items' => $newItem]]);
                 if ($updateResult->getModifiedCount() > 0) {
                     $response = ['success' => true, 'message' => 'Scan recorded.', 'product_name' => $product->name];
-                } else { $response['message'] = 'Failed to record scan.'; }
-                break;
-
-            case 'endMobilePairing': // Desktop calls this
-                 if (!isset($_SESSION['user_id'])) { $response['message'] = 'User not authenticated.'; break; }
-                $staff_user_id_obj = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
-                $db->pairing_sessions->updateMany(['staff_user_id' => $staff_user_id_obj, 'status' => 'mobile_paired_active'], ['$set' => ['status' => 'completed']]);
-                $response = ['success' => true, 'message' => 'Pairing ended.'];
+                } else { $response['message'] = 'Failed to record scan to active session.'; }
                 break;
 
             default: $response['message'] = 'Unknown POST action.'; http_response_code(400); break;
@@ -314,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
-    header('Content-Type: application/json');
+    header('Content-Type: application/json'); // Ensure this is set for all GET actions
     $action = $_GET['action'];
     try {
         switch ($action) {
@@ -334,45 +322,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else { $response['message'] = 'Product ID missing.'; http_response_code(400); }
                 break;
 
-            case 'getBills': // Using bill_new as per generateBill logic
+            case 'getBills':
                 $bills = $db->bill_new->find([], ['sort' => ['created_at' => -1]])->toArray();
                 echo json_encode($bills); exit;
 
-            case 'getSales': // Using bill_new
+            case 'getSales':
                 $sales = $db->bill_new->find([], ['sort' => ['created_at' => -1]])->toArray();
                 echo json_encode($sales); exit;
 
+            case 'activateMobileScannerSession': // Mobile scanner page calls on load/retry
+                if (!isset($_SESSION['user_id'])) { $response = ['success' => false, 'session_activated' => false, 'message' => 'Mobile user not authenticated.']; break; }
+                $staff_user_id_obj = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
+                $current_user_display = $_SESSION['username'] ?? 'N/A';
+                $desktopInitiatedSession = $db->pairing_sessions->findOneAndUpdate(
+                    ['staff_user_id' => $staff_user_id_obj, 'status' => 'desktop_initiated_pairing'],
+                    ['$set' => ['status' => 'mobile_active', 'mobile_session_id' => session_id(), 'last_mobile_heartbeat' => new MongoDB\BSON\UTCDateTime()]],
+                    ['returnDocument' => MongoDB\Operation\FindOneAndUpdate::AFTER]
+                );
+                if ($desktopInitiatedSession) {
+                    $response = ['success' => true, 'session_activated' => true, 'message' => 'Scanner session activated.', 'staff_username' => $desktopInitiatedSession->staff_username];
+                } else {
+                    $alreadyActiveSession = $db->pairing_sessions->findOne(['staff_user_id' => $staff_user_id_obj, 'status' => 'mobile_active', 'mobile_session_id' => session_id()]);
+                     if($alreadyActiveSession){
+                        $db->pairing_sessions->updateOne(['_id' => $alreadyActiveSession->_id], ['$set' => ['last_mobile_heartbeat' => new MongoDB\BSON\UTCDateTime()]]);
+                        $response = ['success' => true, 'session_activated' => true, 'message' => 'Scanner session already active.', 'staff_username' => $alreadyActiveSession->staff_username, 'current_user' => $current_user_display];
+                     } else {
+                        $response = ['success' => false, 'session_activated' => false, 'message' => 'POS terminal has not activated scanner mode for your account, or another mobile is active.', 'current_user' => $current_user_display];
+                     }
+                }
+                break;
+            
+            case 'checkDesktopScannerActivation': // Desktop POS calls on load
+                if (!isset($_SESSION['user_id'])) { $response = ['success' => false, 'is_active' => false, 'message' => 'Desktop user not authenticated.']; break; }
+                $staff_user_id_obj = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
+                $activeSession = $db->pairing_sessions->findOne(['staff_user_id' => $staff_user_id_obj, 'status' => ['$in' => ['desktop_initiated_pairing', 'mobile_active']]]);
+                if ($activeSession) {
+                    $status_message = $activeSession->status === 'mobile_active' ? 'Mobile scanner is connected and active.' : 'Waiting for your mobile scanner to connect.';
+                    $response = ['success' => true, 'is_active' => true, 'status' => $activeSession->status, 'staff_username' => $activeSession->staff_username, 'message' => $status_message];
+                } else {
+                    $response = ['success' => true, 'is_active' => false, 'message' => 'Scanner mode not active.'];
+                }
+                break;
+            
             case 'getScannedItems': // Desktop POS polls this
                 if (!isset($_SESSION['user_id'])) { $response['message'] = 'User not authenticated.'; break; }
                 $staff_user_id_obj = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
-                $activePairingSession = $db->pairing_sessions->findOne(['staff_user_id' => $staff_user_id_obj, 'status' => 'mobile_paired_active']);
-                if (!$activePairingSession) { $response = ['success' => true, 'items' => [], 'message' => 'No active mobile pairing.']; break; }
-                // $activePairingSession->session_expires_at handled by TTL
+                $activePairingSession = $db->pairing_sessions->findOne(['staff_user_id' => $staff_user_id_obj, 'status' => 'mobile_active']);
+                if (!$activePairingSession) { $response = ['success' => true, 'items' => [], 'message' => 'No active mobile scanner confirmed for this POS session.']; break; }
                 $unprocessedItems = []; $itemUpdateQueries = [];
                 if (isset($activePairingSession->scanned_items) && (is_array($activePairingSession->scanned_items) || $activePairingSession->scanned_items instanceof Traversable)) {
                     foreach ($activePairingSession->scanned_items as $item) {
                         if (isset($item->processed) && $item->processed === false) {
                             $unprocessedItems[] = $item;
-                            $itemUpdateQueries[] = new MongoDB\UpdateOne(['_id' => $activePairingSession->_id, "scanned_items.scanned_at" => $item->scanned_at], ['$set' => ["scanned_items.$.processed" => true]]);
+                            // Ensure $item->scanned_at is a BSON\UTCDateTime object before using in query
+                            $scannedAtQueryVal = $item->scanned_at;
+                            if (!$scannedAtQueryVal instanceof MongoDB\BSON\UTCDateTime && isset($scannedAtQueryVal->{'$date'}->{'$numberLong'})) {
+                                $scannedAtQueryVal = new MongoDB\BSON\UTCDateTime($scannedAtQueryVal->{'$date'}->{'$numberLong'});
+                            } elseif (is_string($scannedAtQueryVal)) { // Fallback if it's somehow a string
+                                 try { $scannedAtQueryVal = new MongoDB\BSON\UTCDateTime(strtotime($scannedAtQueryVal)*1000); } catch (Exception $e) { continue; /* skip if invalid date */ }
+                            }
+                            if ($scannedAtQueryVal instanceof MongoDB\BSON\UTCDateTime) { // Only add if valid
+                                $itemUpdateQueries[] = new MongoDB\UpdateOne(['_id' => $activePairingSession->_id, "scanned_items.scanned_at" => $scannedAtQueryVal], ['$set' => ["scanned_items.$.processed" => true]]);
+                            }
                         }
                     }
                 }
                 if (!empty($itemUpdateQueries)) { $db->pairing_sessions->bulkWrite($itemUpdateQueries); }
                 $response = ['success' => true, 'items' => $unprocessedItems];
-                break;
-
-            case 'checkMobilePairingStatus': // Mobile scanner page calls on load
-                if (!isset($_SESSION['user_id'])) { $response = ['is_paired' => false, 'message' => 'Mobile user not authenticated.']; break; }
-                $staff_user_id_obj = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
-                $activeSession = $db->pairing_sessions->findOne(['staff_user_id' => $staff_user_id_obj, 'status' => 'mobile_paired_active' /* session_expires_at handled by TTL */]);
-                $response = ['success' => true, 'is_paired' => (bool)$activeSession, 'message' => ($activeSession ? 'Device paired.' : 'Device not paired.')];
-                break;
-
-            case 'checkDesktopPairingStatus': // Desktop POS calls on load
-                if (!isset($_SESSION['user_id'])) { $response = ['is_paired' => false, 'message' => 'Desktop user not authenticated.']; break; }
-                $staff_user_id_obj = new MongoDB\BSON\ObjectId($_SESSION['user_id']);
-                $activeSession = $db->pairing_sessions->findOne(['staff_user_id' => $staff_user_id_obj, 'status' => 'mobile_paired_active' /* session_expires_at handled by TTL */]);
-                $response = ['success' => true, 'is_paired' => (bool)$activeSession, 'staff_username' => $activeSession->staff_username ?? null, 'message' => ($activeSession ? 'Active pairing exists.' : 'No active pairing.')];
                 break;
 
             default: $response['message'] = 'Unknown GET action.'; http_response_code(400); break;
@@ -383,8 +399,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(500);
     }
 } else {
-    // Not a POST or GET with action, or invalid combination
-    http_response_code(400); // Bad Request
+    http_response_code(400);
     $response['message'] = 'Invalid request method or parameters.';
 }
 
