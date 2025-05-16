@@ -7,43 +7,34 @@
       "use": "vercel-php@0.6.1" 
     },
     { "src": "global.css", "use": "@vercel/static" },
-    { "src": "staff/index.html", "use": "@vercel/static" }, // MODIFIED path
+    { "src": "staff/index.html", "use": "@vercel/static" },
     { "src": "js/**", "use": "@vercel/static" }
   ],
   "routes": [
     // Serve static files first
     { "src": "/global.css", "dest": "/global.css" },
     { "src": "/js/(.*)", "dest": "/js/$1" },
-    { "src": "/staff/index.html", "dest": "/staff/index.html" }, // MODIFIED route
+    { "src": "/staff/index.html", "dest": "/staff/index.html" }, 
 
-    // Then API routes handled by PHP
     {
       "src": "/billing/(.*)",
       "dest": "/api/index.php"
     },
     {
       "src": "/billing", 
-      "dest": "/api/index.php"
+      "dest": "/api/index.php" 
     },
     
-    // Fallback for filesystem if not matched by specific static routes above
-    { "handle": "filesystem" } 
-
-    // If you want the PHP application's homepage (e.g., /billing/index) to be at the domain root:
-    // {
-    //   "src": "^/$", 
-    //   "dest": "/api/index.php" 
-    // }
-    // For now, domain.com/ (if not caught by specific static files) might 404 or be handled by Vercel's defaults.
-    // The explicit "/staff/index.html" route ensures it's served.
+    
+    { "handle": "filesystem" }
   ],
   "env": {
     "APP_ENV": "production",
     "MONGODB_URI": "@mongodb-uri",
-    "VERCEL_PHP_ Eintrag": "router.php" 
+    "VERCEL_PHP_ENTRYPOINT": "router.php" 
   },
   "github": {
     "enabled": true,
     "silent": true 
   }
-    }
+}
