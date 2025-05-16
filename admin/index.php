@@ -15,7 +15,7 @@ $bodyClass = "admin-page";
 
 // Page-specific scripts
 $pageScripts = [
-    '/billing/js/admin-dashboard.js' // Create this if needed later
+    // '/billing/js/admin-dashboard.js' // Removed as file not provided
 ];
 
 // Include header AFTER authentication check
