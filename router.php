@@ -32,70 +32,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // --- Configuration ---
 $base_path = '/billing'; // This should match the path used in Vercel routes and client-side JS
-$log_dir = __DIR__ . '/logs'; // For Vercel, consider using /tmp or stdout/stderr
-$mongodb_log_file = $log_dir . '/mongodb.log';
-$router_log_file = $log_dir . '/router.log';
 
-// --- Helper Functions ---
-function route_log($message) {
-    global $router_log_file, $log_dir;
-    // On Vercel, direct error_log to stderr/stdout is preferred.
-    // Filesystem writes to /logs might not work or persist.
-    if (getenv('VERCEL') || getenv('NOW_REGION')) { // Check if running on Vercel
-        error_log('[Router] ' . $message);
-    } else {
-        if (!file_exists($log_dir)) {
-            @mkdir($log_dir, 0755, true); // Use @ to suppress errors if dir creation fails (e.g. permissions)
-        }
-        if (is_writable($log_dir) || !file_exists($router_log_file) && is_writable(dirname($router_log_file))) {
-            error_log(date('[Y-m-d H:i:s] ') . $message . PHP_EOL, 3, $router_log_file);
-        } else {
-            error_log('[Router - Log Write Error] ' . $message); // Fallback to default error log
-        }
-    }
-}
-
-function logMongoDBConnectionStatus() {
-    global $mongodb_log_file, $log_dir;
-    $log_message_prefix = date('[Y-m-d H:i:s] ');
-
-    $configPath = __DIR__ . '/config.php';
-    if (file_exists($configPath)) {
-        require_once $configPath; // Load config to get MONGODB_URI
-    }
-
-    $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017'; // Default if not defined
-
-    if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-        // Autoloader should already be loaded by this point
-        if (class_exists('MongoDB\Client')) {
-            try {
-                $client = new MongoDB\Client($uri, [], ['serverSelectionTimeoutMS' => 2000]);
-                $client->listDatabases(); 
-                $status = "Connected successfully to MongoDB URI: " . substr($uri, 0, strpos($uri, '//')+2) . preg_replace('/:(.*)@/', ':****@', substr($uri, strpos($uri, '//')+2)); // Mask credentials
-            } catch (Exception $e) {
-                $status = "MongoDB Connection Error: " . $e->getMessage();
-            }
-        } else {
-            $status = "MongoDB\Client class not found.";
-        }
-    } else {
-         $status = "Composer autoload.php not found for DB check.";
-    }
-
-    if (getenv('VERCEL') || getenv('NOW_REGION')) {
-        error_log('[MongoDB Status] ' . $status);
-    } else {
-        if (!file_exists($log_dir)) {
-            @mkdir($log_dir, 0755, true);
-        }
-        if (is_writable($log_dir) || !file_exists($mongodb_log_file) && is_writable(dirname($mongodb_log_file))) {
-            error_log($log_message_prefix . $status . PHP_EOL, 3, $mongodb_log_file);
-        } else {
-             error_log('[MongoDB Status - Log Write Error] ' . $status);
-        }
-    }
-}
 
 // Non-blocking MongoDB connection check (log only)
 set_time_limit(5); 
@@ -129,8 +66,6 @@ if (empty($relative_path)) { // Handles case where request is exactly $base_path
 if (substr($relative_path, 0, 1) !== '/') {
     $relative_path = '/' . $relative_path;
 }
-route_log("Normalized relative path (within app context): {$relative_path}");
-
 
 // --- API and Special File Routes ---
 // server.php and notification.php are handled as part of the application logic,
