@@ -28,11 +28,31 @@ class NotificationSystem {
     private $db;
     private $client; // Store client for potential reuse or graceful shutdown
 
-    public function __construct() {
+    /**
+     * Constructor allows passing an existing MongoDB client
+     * This helps reduce connection overhead and share connections
+     * 
+     * @param MongoDB\Client|null $existingClient An existing MongoDB client instance
+     */
+    public function __construct($existingClient = null) {
         try {
-            $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
-            $this->client = new MongoDB\Client($uri, [], ['serverSelectionTimeoutMS' => 3000]);
-            $this->db = $this->client->selectDatabase('billing'); // Use selectDatabase
+            if ($existingClient instanceof MongoDB\Client) {
+                $this->client = $existingClient;
+                error_log("NotificationSystem: Using provided MongoDB client");
+            } else {
+                $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
+                $this->client = new MongoDB\Client($uri, [], [
+                    'serverSelectionTimeoutMS' => 5000,
+                    'connectTimeoutMS' => 10000
+                ]);
+                error_log("NotificationSystem: Created new MongoDB client");
+            }
+            
+            $this->db = $this->client->selectDatabase('billing');
+            
+            // Verify connection is working by running a simple command
+            $this->db->command(['ping' => 1]);
+            
         } catch (Exception $e) {
             // Log error and potentially rethrow or handle gracefully
             error_log("NotificationSystem: Failed to connect to MongoDB: " . $e->getMessage());
@@ -40,20 +60,49 @@ class NotificationSystem {
         }
     }
 
-    private function checkDbConnection() {
+    public function checkDbConnection() {
         if ($this->db === null) {
             // Attempt to reconnect or throw an error
             try {
                 $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
-                $this->client = new MongoDB\Client($uri, [], ['serverSelectionTimeoutMS' => 1000]);
+                
+                $uriOptions = [];
+                $driverOptions = [
+                    'serverSelectionTimeoutMS' => 5000, // Shorter timeout for a quick check/reconnect
+                    'connectTimeoutMS' => 8000
+                ];
+
+                if (strpos($uri, 'mongodb+srv://') === 0 || strpos($uri, '.mongodb.net') !== false) {
+                    $uriOptions['retryWrites'] = true;
+                    if (class_exists('MongoDB\\Driver\\ServerApi')) {
+                         // Ensure ServerApi class is available if vendor/autoload.php was loaded by the main script
+                        $driverOptions['serverApi'] = new MongoDB\Driver\ServerApi(MongoDB\Driver\ServerApi::V1);
+                    }
+                }
+
+                $this->client = new MongoDB\Client($uri, $uriOptions, $driverOptions);
                 $this->db = $this->client->selectDatabase('billing');
+                
+                // Test the connection explicitly
+                $this->db->command(['ping' => 1]);
+                
                 if ($this->db === null) throw new Exception("Reconnection failed.");
+                return true;
             } catch (Exception $e) {
                  error_log("NotificationSystem: DB Reconnection failed: " . $e->getMessage());
                 return false;
             }
         }
-        return true;
+        
+        // Test if the connection is still valid
+        try {
+            $this->db->command(['ping' => 1]);
+            return true;
+        } catch (Exception $e) {
+            error_log("NotificationSystem: DB connection check failed: " . $e->getMessage());
+            $this->db = null; // Mark as disconnected
+            return false;
+        }
     }
     
     public function saveNotification($message, $type = 'info', $target = 'all', $duration = 5000, $title = null) {

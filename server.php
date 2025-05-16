@@ -68,16 +68,98 @@ $db = null;
 $notificationSystem = null;
 
 try {
+    // Ensure vendor autoload is loaded (it should be, but good for robustness)
+    if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+        require_once __DIR__ . '/vendor/autoload.php';
+    } else {
+        throw new Exception("Autoloader not found. This is a critical error.");
+    }
+
     // Use the MongoDB URI from config.php
     $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
     
-    // Set the version of the Stable API on the client
-    $apiVersion = new ServerApi(ServerApi::V1);
+    $uriOptions = [];
+    $driverOptions = [
+        'serverSelectionTimeoutMS' => 10000, // Reasonable timeout
+        'connectTimeoutMS' => 15000,         // Reasonable timeout
+        // Add SSL context options for more control over TLS/SSL behavior
+        // This is particularly useful for debugging TLS handshake issues.
+        'ssl' => true, // Explicitly enable SSL, though often default for srv
+        'tlsContext' => stream_context_create([
+            'ssl' => [
+                // --- IMPORTANT SECURITY NOTE ---
+                // 'verify_peer' => false, // DANGER: Disables peer certificate verification.
+                                          // ONLY use for temporary debugging in isolated environments.
+                                          // DO NOT use in production.
+                // 'verify_peer_name' => false, // DANGER: Disables peer name verification.
+                                               // ONLY use for temporary debugging.
+                                               // DO NOT use in production.
+
+                // If you have a specific CA bundle file, you can specify it:
+                // 'cafile' => '/path/to/your/ca-bundle.crt',
+
+                // Attempt to allow self-signed certificates (less secure, for specific scenarios)
+                // 'allow_self_signed' => true,
+
+                // You might need to specify a specific TLS version if there are negotiation issues
+                // Example: Forcing TLS 1.2 (check constants for your PHP version)
+                // 'crypto_method' => STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT,
+            ]
+        ])
+    ];
+
+    // For Atlas SRV URIs, enable retryWrites and ServerApi
+    if (strpos($uri, 'mongodb+srv://') === 0 || strpos($uri, '.mongodb.net') !== false) {
+        $uriOptions['retryWrites'] = true;
+        if (class_exists('MongoDB\\Driver\\ServerApi')) {
+            $driverOptions['serverApi'] = new MongoDB\Driver\ServerApi(MongoDB\Driver\ServerApi::V1);
+        }
+    }
     
     // Create a new client and connect to the server
-    $mongoClient = new MongoDB\Client($uri, [], ['serverApi' => $apiVersion, 'serverSelectionTimeoutMS' => 5000]);
+    $mongoClient = new MongoDB\Client($uri, $uriOptions, $driverOptions);
+    
+    // Test connection explicitly before proceeding with retry logic
+    $connectionSuccessful = false;
+    $connectionAttempts = 0;
+    $maxAttempts = 3;
+    
+    while (!$connectionSuccessful && $connectionAttempts < $maxAttempts) {
+        try {
+            $connectionAttempts++;
+            $mongoClient->selectDatabase('admin')->command(['ping' => 1]);
+            $connectionSuccessful = true;
+            error_log("MongoDB connection established successfully after {$connectionAttempts} attempt(s)");
+        } catch (Exception $e) {
+            error_log("MongoDB connection attempt {$connectionAttempts} failed: " . $e->getMessage());
+            
+            if ($connectionAttempts >= $maxAttempts) {
+                throw $e; // Re-throw to be caught by the outer try-catch block
+            }
+            
+            // Add exponential backoff delay between attempts
+            $delay = pow(2, $connectionAttempts - 1) * 100000; // in microseconds (0.1s, 0.2s, 0.4s)
+            usleep($delay);
+        }
+    }
+    
+    // Now initialize database and notification system
     $db = $mongoClient->selectDatabase('billing');
-    $notificationSystem = new NotificationSystem(); // It has its own DB connection logic
+    
+    // Initialize notification system with the already-established client
+    $notificationSystem = null;
+    try {
+        $notificationSystem = new NotificationSystem($mongoClient); // Pass the client
+        
+        // Test notification system is working
+        if (!$notificationSystem->checkDbConnection()) {
+            error_log("Notification system database connection check failed");
+            throw new Exception("Notification system database connection check failed");
+        }
+    } catch (Exception $e) {
+        error_log("Failed to initialize notification system: " . $e->getMessage());
+        throw $e; // Re-throw to be caught by the outer try-catch block
+    }
     
     // Check and create missing collections if needed
     $existingCollections = [];
@@ -94,13 +176,80 @@ try {
         }
     }
     
+} catch (MongoDB\Driver\Exception\AuthenticationException $e) {
+    $errorMessage = 'MongoDB authentication failed: ' . $e->getMessage();
+    error_log($errorMessage);
+    
+    if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
+        // Handle non-JSON context if necessary
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'Database connection failed: Invalid credentials',
+            'error_code' => 'AUTH_FAILED'
+        ]);
+        exit;
+    }
+} catch (MongoDB\Driver\Exception\ConnectionTimeoutException $e) {
+    $errorMessage = 'MongoDB connection timed out: ' . $e->getMessage();
+    error_log($errorMessage);
+    
+    if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
+        // Handle non-JSON context
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Database connection timed out. Please try again later.',
+            'error_code' => 'CONNECTION_TIMEOUT'
+        ]);
+        exit;
+    }
+} catch (MongoDB\Driver\Exception\ServerSelectionTimeoutException $e) {
+    $errorMessage = 'MongoDB server selection timed out: ' . $e->getMessage();
+    error_log($errorMessage);
+    
+    if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
+        // Handle non-JSON context
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Could not connect to database server. The service might be temporarily unavailable.',
+            'error_code' => 'SERVER_SELECTION_FAILED'
+        ]);
+        exit;
+    }
+} catch (MongoDB\Driver\Exception\InvalidArgumentException $e) {
+    $errorMessage = 'MongoDB invalid connection string: ' . $e->getMessage();
+    error_log($errorMessage);
+    
+    if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
+        // Handle non-JSON context
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Database configuration error. Please contact system administrator.',
+            'error_code' => 'INVALID_CONNECTION_STRING'
+        ]);
+        exit;
+    }
 } catch (Exception $e) {
-    // If DB connection fails at this top level, critical error for most operations
+    // Generic exception handler for all other cases
+    $errorMessage = 'Database connection failed: ' . $e->getMessage();
+    error_log($errorMessage);
+    
     if (php_sapi_name() !== 'cli' && (!isset($_SERVER['HTTP_ACCEPT']) || strpos(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json') === false)) {
         // Handle non-JSON context if necessary, though API endpoints are primary here
     } else {
         header('Content-Type: application/json');
-        echo json_encode(['status' => 'error', 'message' => 'Database connection failed: ' . $e->getMessage()]);
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'Database connection failed. Please try again later.',
+            'error_code' => 'CONNECTION_FAILED'
+        ]);
         exit;
     }
 }
