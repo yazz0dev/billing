@@ -7,11 +7,16 @@
       "use": "vercel-php@0.6.1" 
     },
     { "src": "global.css", "use": "@vercel/static" },
-    { "src": "index.html", "use": "@vercel/static" }, 
+    { "src": "staff/index.html", "use": "@vercel/static" }, // MODIFIED path
     { "src": "js/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "handle": "filesystem" },
+    // Serve static files first
+    { "src": "/global.css", "dest": "/global.css" },
+    { "src": "/js/(.*)", "dest": "/js/$1" },
+    { "src": "/staff/index.html", "dest": "/staff/index.html" }, // MODIFIED route
+
+    // Then API routes handled by PHP
     {
       "src": "/billing/(.*)",
       "dest": "/api/index.php"
@@ -20,22 +25,25 @@
       "src": "/billing", 
       "dest": "/api/index.php"
     },
-    // The root index.html (QR scanner) will be served by "handle": "filesystem"
+    
+    // Fallback for filesystem if not matched by specific static routes above
+    { "handle": "filesystem" } 
+
     // If you want the PHP application's homepage (e.g., /billing/index) to be at the domain root:
     // {
     //   "src": "^/$", 
-    //   "dest": "/api/index.php" // Your router.php must handle this path, typically by loading /billing/index
+    //   "dest": "/api/index.php" 
     // }
-    // For now, let domain.com/ point to index.html (QR scanner) and domain.com/billing/ for PHP app.
+    // For now, domain.com/ (if not caught by specific static files) might 404 or be handled by Vercel's defaults.
+    // The explicit "/staff/index.html" route ensures it's served.
   ],
   "env": {
     "APP_ENV": "production",
-    "MONGODB_URI": "@mongodb-uri", // Set this in Vercel Project Settings -> Environment Variables
-    "VERCEL_PHP_ Eintrag": "router.php" // Optional: Inform vercel-php about the main script if needed.
-                                          // Typically not required if api/index.php includes it.
+    "MONGODB_URI": "@mongodb-uri",
+    "VERCEL_PHP_ Eintrag": "router.php" 
   },
   "github": {
     "enabled": true,
     "silent": true 
   }
-}
+    }
