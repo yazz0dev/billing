@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['staff'
 
 $pageTitle = "Supermarket Billing (POS)";
 $bodyClass = "staff-page";
-$pageScripts = ['/billing/js/qrcode.min.js'];
+// $pageScripts = ['/billing/js/qrcode.min.js']; // QR code library no longer needed for this page
 
 require_once '../includes/header.php';
 ?>
@@ -16,23 +16,22 @@ require_once '../includes/header.php';
 <h1 class="page-title">Supermarket Billing (POS)</h1>
 
 <section class="content-section glass">
-    <h2 class="section-title">Pair Mobile Scanner</h2>
+    <h2 class="section-title">Mobile Scanner Link</h2>
     <p>User: <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong></p>
     <div id="pairingUiDesktop" class="flex flex-col md:flex-row gap-2 items-start">
         <div class="flex-grow">
-            <button id="initiatePairingBtnDesktop" class="btn">Generate Pairing QR</button>
-            <div id="pairingInstructionsDesktop" class="mt-2" style="display: none;">
+            <button id="activateScannerModeBtn" class="btn">Activate My Mobile as Scanner</button>
+            <button id="deactivateScannerModeBtn" class="btn" style="display:none; background-color:var(--warning);">Deactivate Mobile Scanner</button>
+            <div id="pairingInstructionsDesktop" class="mt-2">
                 <p class="text-sm text-secondary">
-                    On your logged-in mobile device, go to "Pair with Desktop" (or similar option) and scan the QR code below.
-                    This QR code is valid for about 2-5 minutes.
+                    Ensure you are logged in on your mobile device with the same account (<b><?php echo htmlspecialchars($_SESSION['username']); ?></b>).
+                    Then, on your mobile, navigate to the "Mobile Scanner" page (usually found after login or in a simplified mobile menu).
+                    It should automatically connect if this POS has activated scanner mode.
                 </p>
             </div>
         </div>
-        <div id="pairingQrCodeDesktop" class="mt-2 md:mt-0" style="min-width: 180px; min-height: 180px; background: white; padding: 10px; border-radius: var(--border-radius-sm); display:none;">
-            <!-- QR Code will be rendered here -->
-        </div>
     </div>
-    <div id="desktopScannerStatus" class="mt-2 text-sm"></div>
+    <div id="desktopScannerStatus" class="mt-2 text-sm status-message info">Status: Idle. Click "Activate" to enable mobile scanning.</div>
 </section>
 
 <section class="content-section glass mt-4">
@@ -40,12 +39,10 @@ require_once '../includes/header.php';
     <form id="addToCartForm" autocomplete="off">
         <div class="flex flex-col gap-2 md:flex-row"> 
             <div class="form-group flex-grow mb-0"> 
-                <label for="productSearch" class="sr-only">Search Product</label>
                 <input type="text" id="productSearch" placeholder="Search product by name or scan directly..." required list="productListDatalist" class="w-full">
                 <datalist id="productListDatalist"></datalist>
             </div>
             <div class="form-group w-full md:w-auto mb-0"> 
-                <label for="quantityInput" class="sr-only">Quantity</label>
                 <input type="number" id="quantityInput" placeholder="Qty" min="1" value="1" required class="w-full">
             </div>
             <button type="submit" class="btn w-full md:w-auto">Add to Cart</button>
@@ -56,15 +53,9 @@ require_once '../includes/header.php';
         <h3>Cart Items</h3>
         <div class="table-wrapper">
             <table id="cartTable">
-                <thead>
-                    <tr><th>Product</th><th>Price</th><th>Quantity</th><th>Total</th><th>Action</th></tr>
-                </thead>
-                <tbody>
-                    <tr id="emptyCartRow"><td colspan="5" class="text-center">Cart is empty</td></tr>
-                </tbody>
-                <tfoot>
-                    <tr><td colspan="3" class="text-right"><strong>Grand Total:</strong></td><td id="grandTotal">₹0.00</td><td></td></tr>
-                </tfoot>
+                <thead><tr><th>Product</th><th>Price</th><th>Quantity</th><th>Total</th><th>Action</th></tr></thead>
+                <tbody><tr id="emptyCartRow"><td colspan="5" class="text-center">Cart is empty</td></tr></tbody>
+                <tfoot><tr><td colspan="3" class="text-right"><strong>Grand Total:</strong></td><td id="grandTotal">₹0.00</td><td></td></tr></tfoot>
             </table>
         </div>
         <div class="flex justify-end mt-4">
@@ -74,10 +65,7 @@ require_once '../includes/header.php';
 </section>
 
 <script>
-    let products = [];
-    let cart = [];
-    let desktopPairingPollInterval = null;
-    let activePairingTokenForQR = null; // Store the token used to generate the current QR
+    let products = []; let cart = []; let desktopPairingPollInterval = null; let isDesktopScannerActive = false;
 
     const productSearch = document.getElementById('productSearch');
     const productListDatalist = document.getElementById('productListDatalist');
@@ -88,39 +76,36 @@ require_once '../includes/header.php';
     const grandTotalElement = document.getElementById('grandTotal');
     const generateBillBtn = document.getElementById('generateBillBtn');
     
-    const initiatePairingBtnDesktop = document.getElementById('initiatePairingBtnDesktop');
-    const pairingInstructionsDesktop = document.getElementById('pairingInstructionsDesktop');
-    const pairingQrCodeDesktopDiv = document.getElementById('pairingQrCodeDesktop');
+    const activateScannerModeBtn = document.getElementById('activateScannerModeBtn');
+    const deactivateScannerModeBtn = document.getElementById('deactivateScannerModeBtn');
     const desktopScannerStatus = document.getElementById('desktopScannerStatus');
-    let desktopQrCodeInstance = null;
+
+    function displayDesktopStatus(message, type = 'info') {
+        desktopScannerStatus.textContent = message;
+        desktopScannerStatus.className = `mt-2 text-sm status-message ${type}`;
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
             const response = await fetch('/billing/server.php?action=getProducts');
-            const rawProducts = await response.json();
-            products = rawProducts.map(product => ({
-                id: product._id.$oid || product.id, name: product.name,
-                price: parseFloat(product.price), stock: parseInt(product.stock)
-            }));
+            products = (await response.json()).map(p => ({ id: p._id.$oid || p.id, name: p.name, price: parseFloat(p.price), stock: parseInt(p.stock) }));
             productListDatalist.innerHTML = products.map(p => `<option value="${p.name}" data-id="${p.id}" data-price="${p.price}" data-stock="${p.stock}">`).join('');
             updateCartDisplay();
-        } catch (error) {
-            console.error("Failed to fetch products:", error);
-            window.popupNotification.error("Failed to load products.", "Data Error");
-        }
-        // Start polling for scanned items IF a pairing session is already active for this user
-        checkInitialPairingAndStartPolling();
+        } catch (error) { console.error("Err fetching products:", error); window.popupNotification.error("Failed to load products.", "Data Error"); }
+        checkInitialDesktopScannerStatus();
     });
 
     function addProductToCartById(productId, quantity = 1, productName = null, productPrice = null) {
+        // ... (Keep this function largely the same as your previous version for adding to cart) ...
+        // (Ensure it handles stock checks and updates UI correctly)
         let product = products.find(p => p.id === productId);
 
         if (!product && productName && productPrice !== null) {
             product = { id: productId, name: productName, price: parseFloat(productPrice), stock: Infinity };
-            window.popupNotification.info(`Product '${productName}' added from scan. Local product list might be outdated.`, "Product Info");
+            window.popupNotification.info(`Product '${productName}' added from scan. Local list might be old.`, "Product Info");
         } else if (!product) {
             window.popupNotification.warning(`Product ID ${productId} not found.`, "Scan Error");
-            desktopScannerStatus.textContent = `Error: Product ID ${productId} not found.`;
+            displayDesktopStatus(`Error: Product ID ${productId} not found.`, 'error');
             return false;
         }
 
@@ -154,19 +139,15 @@ require_once '../includes/header.php';
                     });
                 }
                 updateCartDisplay();
-                productSearch.value = ''; 
-                quantityInput.value = '1';
+                productSearch.value = ''; quantityInput.value = '1';
                 window.popupNotification.success(`${product.name} (qty: ${quantity}) added to cart.`, "Product Added");
-                desktopScannerStatus.textContent = `${product.name} added.`;
+                displayDesktopStatus(`${product.name} added to cart via mobile.`, 'success');
             })
-            .catch(err => {
-                console.error("Error fetching product data for stock check:", err);
-                window.popupNotification.error("Could not verify product stock. Try adding manually.", "Network Error");
-            });
+            .catch(err => { console.error("Stock check error:", err); window.popupNotification.error("Stock check failed.", "Network Error"); });
         return true;
     }
 
-    addToCartForm.addEventListener('submit', (e) => {
+    addToCartForm.addEventListener('submit', (e) => { /* ... (Keep this function same) ... */ 
         e.preventDefault();
         const productNameInput = productSearch.value;
         const quantityVal = parseInt(quantityInput.value);
@@ -179,8 +160,7 @@ require_once '../includes/header.php';
         }
         addProductToCartById(selectedOption.dataset.id, quantityVal, selectedOption.value, parseFloat(selectedOption.dataset.price));
     });
-    
-    function updateCartDisplay() {
+    function updateCartDisplay() { /* ... (Keep this function same) ... */ 
         const tbody = cartTable.querySelector('tbody');
         emptyCartRow.style.display = cart.length === 0 ? 'table-row' : 'none';
         generateBillBtn.disabled = cart.length === 0;
@@ -201,15 +181,13 @@ require_once '../includes/header.php';
         });
         grandTotalElement.textContent = `₹${grandTotal.toFixed(2)}`;
     }
-    
-    window.removeFromCart = function(index) {
+    window.removeFromCart = function(index) { /* ... (Keep this function same) ... */
         const item = cart[index];
         cart.splice(index, 1);
         updateCartDisplay();
         window.popupNotification.info(`${item.product_name} removed.`);
     };
-    
-    generateBillBtn.addEventListener('click', async () => {
+    generateBillBtn.addEventListener('click', async () => { /* ... (Keep this function same, BUT in onConfirm for bill, call deactivateScannerModeFromServer()) ... */
         if (cart.length === 0) { window.popupNotification.warning("Cart is empty."); return; }
         try {
             const response = await fetch('/billing/server.php?action=generateBill', {
@@ -224,121 +202,98 @@ require_once '../includes/header.php';
                     `<h3>Bill #${result.bill_id}</h3><p>Amount: ₹${totalAmount}</p><p>Thank you!</p>`,
                     () => { // onConfirm
                         cart = []; updateCartDisplay();
-                        if (desktopPairingPollInterval) clearInterval(desktopPairingPollInterval);
-                        pairingInstructionsDesktop.style.display = 'none';
-                        pairingQrCodeDesktopDiv.innerHTML = ''; pairingQrCodeDesktopDiv.style.display = 'none';
-                        activePairingTokenForQR = null;
-                        initiatePairingBtnDesktop.disabled = false;
-                        desktopScannerStatus.textContent = "Pairing ended. Generate new QR if needed.";
-                        // Also tell server to end this pairing session explicitly
-                        fetch('/billing/server.php?action=endMobilePairing', { method: 'POST' }); 
+                        deactivateScannerModeFromServer(true); // true to indicate bill generation caused deactivation
                     }
                 );
             } else { window.popupNotification.error("Bill generation failed: " + (result.message || "Error"), "Error"); }
-        } catch (error) {
-            console.error("Error generating bill:", error);
-            window.popupNotification.error("Error generating bill. Try again.", "Error");
-        }
+        } catch (error) { console.error("Error generating bill:", error); window.popupNotification.error("Error generating bill. Try again.", "Error"); }
     });
 
-    initiatePairingBtnDesktop.addEventListener('click', async () => {
-        initiatePairingBtnDesktop.disabled = true;
-        desktopScannerStatus.textContent = "Requesting pairing token...";
-        pairingQrCodeDesktopDiv.innerHTML = ''; 
-        pairingQrCodeDesktopDiv.style.display = 'none';
-        pairingInstructionsDesktop.style.display = 'none';
-
+    activateScannerModeBtn.addEventListener('click', async () => {
+        activateScannerModeBtn.disabled = true;
+        deactivateScannerModeBtn.style.display = 'none';
+        displayDesktopStatus("Activating mobile scanner mode...", 'info');
         try {
-            const formData = new FormData(); // No data needed, server uses session
-            const response = await fetch('/billing/server.php?action=initiateMobilePairing', { method: 'POST', body: formData });
+            const response = await fetch('/billing/server.php?action=activateMobileScanning', { method: 'POST' }); // New action
             const result = await response.json();
-
-            if (result.success && result.pairing_token) {
-                activePairingTokenForQR = result.pairing_token;
-                // Construct the URL for the mobile to open to confirm pairing
-                const pairingUrlForMobile = `${window.location.origin}/billing/staff/mobile-pair.php?token=${activePairingTokenForQR}`;
-                
-                pairingInstructionsDesktop.style.display = 'block';
-                pairingQrCodeDesktopDiv.style.display = 'block';
-                desktopScannerStatus.textContent = "QR code generated. Scan with your mobile device.";
-
-                if (typeof QRCode !== 'undefined') {
-                     desktopQrCodeInstance = new QRCode(pairingQrCodeDesktopDiv, {
-                        text: pairingUrlForMobile, width: 160, height: 160,
-                        colorDark : "#000000", colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.M
-                    });
-                } else {
-                    pairingQrCodeDesktopDiv.textContent = "QR lib error.";
-                }
-                // Start polling for scanned items now that a pairing attempt is active
-                startPollingForDesktopScannedItems(); 
+            if (result.success) {
+                isDesktopScannerActive = true;
+                displayDesktopStatus(`Mobile scanner mode activated for ${result.staff_username || 'you'}. Mobile can now connect & scan.`, 'success');
+                activateScannerModeBtn.style.display = 'none';
+                deactivateScannerModeBtn.style.display = 'inline-block';
+                startPollingForScannedItemsDesktop();
             } else {
-                window.popupNotification.error(result.message || "Failed to get pairing token.", "Pairing Error");
-                desktopScannerStatus.textContent = `Error: ${result.message || "Failed to get token."}`;
-                initiatePairingBtnDesktop.disabled = false;
+                displayDesktopStatus(`Failed to activate: ${result.message || 'Unknown error'}`, 'error');
+                activateScannerModeBtn.disabled = false;
             }
         } catch (error) {
-            console.error("Error initiating pairing:", error);
-            window.popupNotification.error("Server error during pairing initiation.", "Pairing Error");
-            desktopScannerStatus.textContent = "Server error for pairing.";
-            initiatePairingBtnDesktop.disabled = false;
+            displayDesktopStatus("Error activating scanner mode. Check network.", 'error');
+            activateScannerModeBtn.disabled = false;
         }
     });
 
-    function startPollingForDesktopScannedItems() {
-        if (desktopPairingPollInterval) clearInterval(desktopPairingPollInterval); 
-        
-        // This polling assumes the server uses the desktop's session to find its active pairing
-        // and then retrieves items from that pairing session.
-        desktopPairingPollInterval = setInterval(async () => {
-            // No specific pairing ID needed from client; server uses session.
-            try {
-                const response = await fetch(`/billing/server.php?action=getScannedItems`); // No pairing_id in URL
-                const result = await response.json();
+    deactivateScannerModeBtn.addEventListener('click', () => deactivateScannerModeFromServer(false));
 
+    async function deactivateScannerModeFromServer(calledAfterBill) {
+        if (desktopPairingPollInterval) clearInterval(desktopPairingPollInterval);
+        desktopPairingPollInterval = null;
+        isDesktopScannerActive = false;
+        
+        activateScannerModeBtn.style.display = 'inline-block';
+        activateScannerModeBtn.disabled = false;
+        deactivateScannerModeBtn.style.display = 'none';
+        if (!calledAfterBill) { // If not called after bill, means user manually deactivated
+             displayDesktopStatus("Mobile scanner mode deactivated by POS.", 'info');
+        } else {
+             displayDesktopStatus("Pairing ended due to bill generation. Activate again if needed.", 'info');
+        }
+
+
+        try {
+            await fetch('/billing/server.php?action=deactivateMobileScanning', { method: 'POST' }); // New action
+        } catch (error) { console.error("Error deactivating on server:", error); }
+    }
+
+    function startPollingForScannedItemsDesktop() {
+        if (desktopPairingPollInterval) clearInterval(desktopPairingPollInterval);
+        desktopPairingPollInterval = setInterval(async () => {
+            if (!isDesktopScannerActive) { // Stop polling if master switch is off
+                 clearInterval(desktopPairingPollInterval); desktopPairingPollInterval = null; return;
+            }
+            try {
+                const response = await fetch(`/billing/server.php?action=getScannedItems`);
+                const result = await response.json();
                 if (result.success && result.items && result.items.length > 0) {
                     result.items.forEach(item => {
                         addProductToCartById(item.product_id, item.quantity, item.product_name, item.price);
                     });
-                    desktopScannerStatus.textContent = `${result.items.length} item(s) received from mobile.`;
-                } else if (result.success === false && result.message) {
-                    if(result.message.toLowerCase().includes("not paired") || result.message.toLowerCase().includes("expired")) {
-                        desktopScannerStatus.textContent = `Mobile scanner not actively paired or session expired.`;
-                        // Do not clear interval here if we expect mobile to re-pair to this token.
-                        // QR code might still be valid.
-                        // If QR token itself expires, then we might stop or prompt user.
-                        // For now, let it continue polling, mobile might re-pair.
-                        // If generateBill clears pairing, then this will stop making sense.
-                    } else {
-                        // desktopScannerStatus.textContent = `Status: ${result.message}`;
-                    }
-                } else if (result.success && result.is_paired === false) { // From checkMobilePairingStatus logic if reused
-                     desktopScannerStatus.textContent = `Mobile scanner is not currently paired.`;
+                } else if (result.success === false && result.message && result.message.toLowerCase().includes("no active mobile pairing")) {
+                    displayDesktopStatus("Waiting for mobile to connect/scan...", 'info');
+                } else if (result.success === false) {
+                     displayDesktopStatus(`Status: ${result.message || 'Polling...'}`, 'info');
                 }
-            } catch (error) {
-                // console.warn("Desktop polling error:", error); 
-            }
-        }, 3000); 
+            } catch (error) { /* console.warn("Desktop polling error:", error); */ }
+        }, 2500);
     }
     
-    async function checkInitialPairingAndStartPolling() {
+    async function checkInitialDesktopScannerStatus() {
         try {
-            const response = await fetch('/billing/server.php?action=checkDesktopPairingStatus'); // New action
+            const response = await fetch('/billing/server.php?action=checkDesktopScannerActivation'); // New Action
             const data = await response.json();
-            if (data.success && data.is_paired) {
-                desktopScannerStatus.textContent = `Mobile scanner is active for user ${data.staff_username}. Polling for items...`;
-                pairingInstructionsDesktop.style.display = 'none';
-                pairingQrCodeDesktopDiv.style.display = 'none';
-                initiatePairingBtnDesktop.disabled = true; // A session is already active
-                startPollingForDesktopScannedItems();
+            if (data.success && data.is_active) {
+                isDesktopScannerActive = true;
+                displayDesktopStatus(`Mobile scanner mode is ALREADY ACTIVE for ${data.staff_username || 'you'}. Polling for items...`, 'success');
+                activateScannerModeBtn.style.display = 'none';
+                deactivateScannerModeBtn.style.display = 'inline-block';
+                startPollingForScannedItemsDesktop();
             } else {
-                desktopScannerStatus.textContent = data.message || `No active mobile pairing found. Click "Generate Pairing QR".`;
-                initiatePairingBtnDesktop.disabled = false;
+                isDesktopScannerActive = false;
+                displayDesktopStatus(data.message || "Scanner mode is not active. Click 'Activate'.", 'info');
+                activateScannerModeBtn.style.display = 'inline-block';
+                deactivateScannerModeBtn.style.display = 'none';
             }
         } catch (error) {
-            desktopScannerStatus.textContent = 'Error checking initial pairing status.';
-            initiatePairingBtnDesktop.disabled = false;
+            displayDesktopStatus('Error checking initial scanner status.', 'error');
         }
     }
 </script>
