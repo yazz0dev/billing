@@ -1,72 +1,41 @@
 {
   "version": 2,
-  "framework": null, // We're using a community runtime, not a Vercel-native framework
+  "framework": null,
   "builds": [
     {
-      "src": "api/index.php", // Your main PHP entry point for dynamic requests
-      "use": "vercel-php@0.6.1" // Use the latest stable vercel-php version (check npm for current)
+      "src": "api/index.php",
+      "use": "vercel-php@0.6.1" 
     },
-    // Vercel is good at automatically detecting static assets in the root.
-    // If you have issues, you can explicitly define them:
     { "src": "global.css", "use": "@vercel/static" },
-    { "src": "index.html", "use": "@vercel/static" }, // For the QR scanner app
-    { "src": "js/**", "use": "@vercel/static" },
-    { "src": "images/**", "use": "@vercel/static" } // If you add an images folder
-    // Add other static asset directories here if needed
+    { "src": "index.html", "use": "@vercel/static" }, 
+    { "src": "js/**", "use": "@vercel/static" }
   ],
   "routes": [
-    // Static files - serve these directly
-    // Vercel might handle these automatically if they are in the root and not caught by other rules.
-    // It's good practice to be explicit if router.php might try to handle them.
     { "handle": "filesystem" },
-
-    // Route all /billing requests (and subpaths) to your PHP handler
-    // The vercel-php runtime will make the original path available to your router.php
     {
-      "src": "/billing/(.*)", // Matches /billing, /billing/login, /billing/admin/index.php etc.
+      "src": "/billing/(.*)",
       "dest": "/api/index.php"
     },
     {
-      "src": "/billing", // Matches /billing exactly
+      "src": "/billing", 
       "dest": "/api/index.php"
     },
-
-    // If your app serves the QR scanner (index.html) from the root:
-    {
-      "src": "/index.html", // Explicitly serve index.html if it's at the root
-      "dest": "/index.html" // Serve the static file
-    },
-
-    // If your app's root (e.g., mydomain.com/) should also point to the billing system's index
-    // And your router.php handles /index as the homepage
-    // This might conflict if you also have a static index.html at the root.
-    // Prioritize the static index.html for the QR scanner if that's the intent.
-    // If you want `mydomain.com/` to go to `/billing/index` (PHP):
+    // The root index.html (QR scanner) will be served by "handle": "filesystem"
+    // If you want the PHP application's homepage (e.g., /billing/index) to be at the domain root:
     // {
-    // "src": "/",
-    // "dest": "/api/index.php" // Your router.php should handle mapping "/" to "/billing/index"
+    //   "src": "^/$", 
+    //   "dest": "/api/index.php" // Your router.php must handle this path, typically by loading /billing/index
     // }
-    // OR, to redirect example.com/ to example.com/billing/
-    // {
-    // "src": "^/$",
-    // "status": 302,
-    // "headers": { "Location": "/billing/" }
-    // }
-
-    // Fallback: if no static file matches, and it's not under /billing,
-    // you might want to route to PHP or show a 404.
-    // For now, let's assume most other root paths are static or not part of this app.
-    // If you had other PHP entry points:
-    // { "src": "/some-other-php.php", "dest": "/api/index.php" }
+    // For now, let domain.com/ point to index.html (QR scanner) and domain.com/billing/ for PHP app.
   ],
   "env": {
     "APP_ENV": "production",
-    "VERCEL_PHP_ региона": "auto", // Optional: Vercel PHP region, 'auto' is fine
-    "MONGODB_URI": "@mongodb-uri" // Placeholder for Vercel Environment Variable
+    "MONGODB_URI": "@mongodb-uri", // Set this in Vercel Project Settings -> Environment Variables
+    "VERCEL_PHP_ Eintrag": "router.php" // Optional: Inform vercel-php about the main script if needed.
+                                          // Typically not required if api/index.php includes it.
   },
-  // Recommended for PHP applications to handle composer dependencies
   "github": {
-    "enabled": true, // Enable GitHub integration for automatic builds
-    "silent": true // Don't comment on PRs for every build
+    "enabled": true,
+    "silent": true 
   }
 }
