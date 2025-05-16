@@ -4,126 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Mobile Barcode Scanner</title>
-    <link rel="stylesheet" href="/billing/global.css?v=<?php echo time(); // Bust cache for dev ?>">
+    <link rel="stylesheet" href="/billing/global.css?v=<?php echo time(); ?>">
     <style>
         body {
-            background-color: var(--bg-body);
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start; /* Align to top */
-            min-height: 100vh;
-            box-sizing: border-box;
+            background-color: var(--bg-body); color: var(--text-primary);
+            font-family: 'Inter', sans-serif; margin: 0; padding: 0;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: flex-start; min-height: 100vh; box-sizing: border-box;
         }
-        .scanner-container {
-            width: 100%;
-            max-width: 600px;
-            padding: 20px;
-            box-sizing: border-box;
-            text-align: center;
-        }
+        .scanner-container { width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; text-align: center; }
         #scanner-region {
-            width: 100%;
-            max-width: 500px;
-            min-height: 250px; /* Placeholder height */
-            border: 2px dashed var(--primary);
-            background-color: var(--bg-surface-alt);
-            margin: 20px auto;
-            position: relative;
+            width: 100%; max-width: 500px; min-height: 200px; /* Reduced min-height */
+            border: 2px dashed var(--primary); background-color: var(--bg-surface-alt);
+            margin: 15px auto; position: relative;
         }
-        #scanner-region video {
-            width: 100% !important; /* Override library styles if necessary */
-            height: auto !important;
-        }
-        .status-message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: var(--border-radius-sm);
-            font-weight: 500;
-        }
-        .status-message.success {
-            background-color: var(--success-bg);
-            color: var(--success-text-emphasis);
-            border: 1px solid var(--success);
-        }
-        .status-message.error {
-            background-color: var(--error-bg);
-            color: var(--error-text-emphasis);
-            border: 1px solid var(--error);
-        }
-        .status-message.info {
-            background-color: var(--info-bg);
-            color: var(--info-text-emphasis);
-            border: 1px solid var(--info);
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: .5rem;
-            font-weight: 500;
-        }
-        .form-group input[type="text"], .form-group input[type="number"] {
-            width: 100%;
-            padding: .75rem;
-            border: 1px solid var(--border-color-subtle);
-            border-radius: var(--border-radius-sm);
-            font-size: 1rem;
-            background-color: var(--input-bg);
-            color: var(--input-text);
-        }
+        #scanner-region video { width: 100% !important; height: auto !important; }
+        .status-message { margin-top: 10px; padding: 8px; border-radius: var(--border-radius-sm); font-weight: 500; font-size: 0.9em; }
+        .status-message.success { background-color: var(--success-bg); color: var(--success-text-emphasis); border: 1px solid var(--success); }
+        .status-message.error { background-color: var(--error-bg); color: var(--error-text-emphasis); border: 1px solid var(--error); }
+        .status-message.info { background-color: var(--info-bg); color: var(--info-text-emphasis); border: 1px solid var(--info); }
         .btn {
-            padding: .75rem 1.5rem;
-            background-color: var(--primary);
-            color: var(--text-on-primary);
-            border: none;
-            border-radius: var(--border-radius-sm);
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            transition: background-color 0.2s;
+            padding: .7rem 1.4rem; background-color: var(--primary); color: var(--text-on-primary);
+            border: none; border-radius: var(--border-radius-sm); cursor: pointer;
+            font-size: 0.95rem; font-weight: 500; transition: background-color 0.2s;
         }
-        .btn:hover {
-            background-color: var(--primary-dark);
-        }
-        .btn:disabled {
-            background-color: var(--border-color-strong);
-            cursor: not-allowed;
-        }
-        .product-info {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: var(--text-secondary);
-        }
-        #stopScannerBtn {
-            background-color: var(--error);
-        }
-        #stopScannerBtn:hover {
-            background-color: #b91c1c; /* Darker red */
-        }
-        .controls {
-            margin-top: 1rem;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
+        .btn:hover { background-color: var(--primary-dark); }
+        .btn:disabled { background-color: var(--border-color-strong); cursor: not-allowed; }
+        .product-info { margin-top: 8px; font-size: 0.85em; color: var(--text-secondary); }
+        #stopScannerBtn { background-color: var(--error); }
+        #stopScannerBtn:hover { background-color: #b91c1c; }
+        .controls { margin-top: 1rem; display: flex; gap: 10px; justify-content: center; }
+        .scanner-page-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1rem; }
+        .scanner-page-header .user-info-scanner { font-size: 0.9rem; color: var(--text-secondary); }
+         #recentScans { max-height: 150px; overflow-y: auto; font-size: 0.85rem;}
+         #recentScansList li { padding: 2px 0; border-bottom: 1px dashed var(--border-color-subtle); }
+         #recentScansList li:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
     <div class="scanner-container">
-        <h1 class="page-title" style="font-size: 1.8rem; margin-bottom: 1rem;">Mobile Scanner</h1>
+        <div class="scanner-page-header">
+            <h1 class="page-title" style="font-size: 1.5rem; margin-bottom: 0;">Scan Barcodes</h1>
+            <a href="/billing/staff/mobile-pair.php" class="btn" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">Re-Pair</a>
+            <!-- <span class="user-info-scanner">User: <?php /* echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'N/A'; */ ?></span> -->
+        </div>
         
-        <div id="pairingSection" class="glass p-3" style="margin-bottom: 1rem;">
-            <div class="form-group">
-                <label for="pairingIdInput">Enter Pairing ID:</label>
-                <input type="text" id="pairingIdInput" placeholder="e.g., ABC123" pattern="[A-Za-z0-9]{6}" maxlength="6" style="text-transform: uppercase;">
-            </div>
-            <button id="startScannerBtn" class="btn">Start Scanner</button>
+        <div id="scanner-activation" class="glass p-3 mb-3">
+            <p id="scannerReadyMessage">Checking pairing status...</p>
+            <button id="activateScannerBtn" class="btn" style="display:none;">Activate Scanner</button>
         </div>
 
         <div id="scanner-region" style="display:none;"></div>
@@ -133,30 +61,31 @@
         <div class="controls" style="display:none;" id="scanControls">
             <button id="stopScannerBtn" class="btn">Stop Scanner</button>
         </div>
-        <div id="recentScans" class="glass p-3 mt-3" style="max-height: 200px; overflow-y: auto; display:none;">
-            <h4>Recent Scans:</h4>
-            <ul id="recentScansList" style="list-style: none; padding: 0; font-size: 0.9rem;"></ul>
+
+        <div id="recentScans" class="glass p-2 mt-2" style="display:none;">
+            <h4 style="font-size: 0.9rem; margin-bottom: 5px;">Recent Scans:</h4>
+            <ul id="recentScansList" style="list-style: none; padding: 0;"></ul>
         </div>
+        <a href="/billing/logout.php" class="btn" style="background-color: var(--error); margin-top: 20px; font-size: 0.9rem;">Logout</a>
     </div>
 
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const pairingIdInput = document.getElementById('pairingIdInput');
-            const startScannerBtn = document.getElementById('startScannerBtn');
+            const activateScannerBtn = document.getElementById('activateScannerBtn');
             const stopScannerBtn = document.getElementById('stopScannerBtn');
             const scannerRegion = document.getElementById('scanner-region');
             const statusMessage = document.getElementById('statusMessage');
             const lastScannedProductDiv = document.getElementById('lastScannedProduct');
-            const pairingSection = document.getElementById('pairingSection');
             const scanControls = document.getElementById('scanControls');
             const recentScansDiv = document.getElementById('recentScans');
             const recentScansList = document.getElementById('recentScansList');
+            const scannerReadyMessage = document.getElementById('scannerReadyMessage');
 
-            let html5QrCode = null;
-            let currentPairingId = '';
+            let html5QrCodeScan = null;
             let isScannerActive = false;
             let scanCooldown = false;
+            let isPaired = false; // Will be set by server check
 
             function displayStatus(message, type = 'info') {
                 statusMessage.textContent = message;
@@ -167,92 +96,112 @@
             function addRecentScan(productName, code) {
                 recentScansDiv.style.display = 'block';
                 const listItem = document.createElement('li');
-                listItem.textContent = `${new Date().toLocaleTimeString()}: ${productName || 'Unknown'} (${code})`;
-                recentScansList.prepend(listItem); // Add to top
+                listItem.textContent = `${new Date().toLocaleTimeString()}: ${productName || 'N/A'} (${code})`;
+                recentScansList.prepend(listItem);
                 if (recentScansList.children.length > 5) {
-                    recentScansList.removeChild(recentScansList.lastChild); // Keep list short
+                    recentScansList.removeChild(recentScansList.lastChild);
                 }
             }
 
-            // Check for pairing_id in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const pairingIdFromUrl = urlParams.get('pairing_id');
-            if (pairingIdFromUrl) {
-                pairingIdInput.value = pairingIdFromUrl.toUpperCase();
-                currentPairingId = pairingIdInput.value;
-                // Optionally auto-start scanner if ID is from URL
-                // startScanner(); 
+            async function checkPairingStatus() {
+                // This function assumes the mobile is already logged in.
+                // The server will use the mobile's session to find its active pairing.
+                try {
+                    const response = await fetch('/billing/server.php?action=checkMobilePairingStatus'); // New action
+                    const data = await response.json();
+                    if (data.success && data.is_paired) {
+                        isPaired = true;
+                        scannerReadyMessage.textContent = 'Device is paired with POS. Ready to scan.';
+                        scannerReadyMessage.style.color = 'var(--success)';
+                        activateScannerBtn.style.display = 'block';
+                    } else {
+                        isPaired = false;
+                        scannerReadyMessage.textContent = data.message || 'Device not actively paired. Please pair via the "Re-Pair" button or on your POS terminal.';
+                        scannerReadyMessage.style.color = 'var(--error)';
+                        activateScannerBtn.style.display = 'none';
+                    }
+                } catch (error) {
+                    isPaired = false;
+                    scannerReadyMessage.textContent = 'Error checking pairing status. Check network.';
+                    scannerReadyMessage.style.color = 'var(--error)';
+                    activateScannerBtn.style.display = 'none';
+                    console.error("Pairing status check error:", error);
+                }
             }
+            checkPairingStatus(); // Check on load
 
-            startScannerBtn.addEventListener('click', () => {
-                currentPairingId = pairingIdInput.value.toUpperCase().trim();
-                if (!currentPairingId || !/^[A-Z0-9]{6}$/.test(currentPairingId)) {
-                    displayStatus('Please enter a valid 6-character Pairing ID.', 'error');
+            activateScannerBtn.addEventListener('click', () => {
+                if (!isPaired) {
+                    displayStatus('Device not paired. Please pair first.', 'error');
                     return;
                 }
-                startScanner();
+                startBarcodeScanner();
             });
+            
+            stopScannerBtn.addEventListener('click', stopBarcodeScanner);
 
-            stopScannerBtn.addEventListener('click', stopScanner);
-
-            function startScanner() {
-                if (isScannerActive) return;
+            function startBarcodeScanner() {
+                if (isScannerActive || !isPaired) return;
 
                 displayStatus('Initializing scanner...', 'info');
-                pairingSection.style.display = 'none';
+                activateScannerBtn.style.display = 'none';
                 scannerRegion.style.display = 'block';
                 scanControls.style.display = 'flex';
 
-                html5QrCode = new Html5Qrcode("scanner-region");
-                const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+                html5QrCodeScan = new Html5Qrcode("scanner-region");
+                const config = { fps: 10, qrbox: { width: 280, height: 120 }, aspectRatio: 2.0 }; // Rectangular for barcodes
 
-                // Prefer back camera
-                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+                html5QrCodeScan.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
                     .then(() => {
                         isScannerActive = true;
-                        displayStatus(`Scanner started. Pairing ID: ${currentPairingId}. Point camera at barcode.`, 'success');
+                        displayStatus(`Scanner active. Point camera at product barcode.`, 'success');
+                        requestWakeLock();
                     })
                     .catch(err => {
-                        displayStatus(`Error starting scanner: ${err}. Try another camera or check permissions.`, 'error');
+                        displayStatus(`Error starting scanner: ${err}.`, 'error');
                         console.error("Scanner start error:", err);
                         scannerRegion.style.display = 'none';
                         scanControls.style.display = 'none';
-                        pairingSection.style.display = 'block';
+                        activateScannerBtn.style.display = 'block';
                     });
             }
 
-            function stopScanner() {
-                if (html5QrCode && isScannerActive) {
-                    html5QrCode.stop()
+            function stopBarcodeScanner() {
+                if (html5QrCodeScan && isScannerActive) {
+                    html5QrCodeScan.stop()
                         .then(() => {
                             isScannerActive = false;
                             displayStatus('Scanner stopped.', 'info');
                             scannerRegion.style.display = 'none';
                             scanControls.style.display = 'none';
-                            pairingSection.style.display = 'block';
-                            html5QrCode.clear();
+                            activateScannerBtn.style.display = 'block';
+                            if(html5QrCodeScan) html5QrCodeScan.clear();
+                            releaseWakeLock();
                         })
                         .catch(err => {
                             displayStatus(`Error stopping scanner: ${err}`, 'error');
-                            console.error("Scanner stop error:", err);
                         });
+                } else {
+                     isScannerActive = false;
+                     scannerRegion.style.display = 'none';
+                     scanControls.style.display = 'none';
+                     activateScannerBtn.style.display = 'block';
                 }
             }
 
             function onScanSuccess(decodedText, decodedResult) {
-                if (scanCooldown) return; // Prevent multiple submissions for the same scan
-
+                if (scanCooldown || !isScannerActive) return; 
                 scanCooldown = true;
-                setTimeout(() => { scanCooldown = false; }, 2000); // 2 second cooldown
+                setTimeout(() => { scanCooldown = false; }, 1500); // 1.5 second cooldown
 
-                displayStatus(`Scanned: ${decodedText}. Sending to server...`, 'info');
-                lastScannedProductDiv.textContent = `Last Scanned: ${decodedText}`;
+                displayStatus(`Scanned: ${decodedText}. Sending...`, 'info');
+                lastScannedProductDiv.textContent = `Last: ${decodedText}`;
 
                 const formData = new FormData();
                 formData.append('action', 'submitScannedProduct');
-                formData.append('pairing_id', currentPairingId);
+                // The server will identify the pairing session using the mobile's PHP session (staff_user_id)
                 formData.append('scanned_product_id', decodedText);
-                // formData.append('quantity', 1); // Default quantity is 1, server can handle this.
+                // formData.append('quantity', 1); // Default quantity 1
 
                 fetch('/billing/server.php', {
                     method: 'POST',
@@ -261,59 +210,40 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        displayStatus(`Product ID ${decodedText} sent successfully!`, 'success');
-                        addRecentScan(data.product_name || null, decodedText); // Assuming server might return product_name
+                        displayStatus(`Sent: ${data.product_name || decodedText}`, 'success');
+                        addRecentScan(data.product_name, decodedText);
                     } else {
-                        displayStatus(`Error: ${data.message || 'Failed to send product ID.'}`, 'error');
-                        addRecentScan(`Failed: ${data.message || 'Unknown error'}`, decodedText);
+                        displayStatus(`Error: ${data.message || 'Failed to send.'}`, 'error');
+                        addRecentScan(`Failed: ${data.message || 'Error'}`, decodedText);
                     }
                 })
                 .catch(error => {
                     displayStatus(`Network Error: ${error.message}`, 'error');
-                    console.error('Send product error:', error);
                     addRecentScan(`Network Error`, decodedText);
                 });
             }
 
-            function onScanFailure(error) {
-                // This callback is called quite frequently. Only log if it's a significant error.
-                // console.warn(`Code scan error = ${error}`);
-                // displayStatus('Scanning... No barcode detected.', 'info');
-            }
+            function onScanFailure(error) { /* Usually quiet */ }
             
-            // Attempt to keep screen awake
             let wakeLock = null;
             const requestWakeLock = async () => {
               if ('wakeLock' in navigator) {
                 try {
                   wakeLock = await navigator.wakeLock.request('screen');
-                  displayStatus('Screen wake lock active.', 'info');
-                  wakeLock.addEventListener('release', () => {
-                    displayStatus('Screen wake lock released.', 'info');
-                  });
-                } catch (err) {
-                  console.error(`${err.name}, ${err.message}`);
-                  displayStatus('Could not acquire screen wake lock.', 'warning');
-                }
-              } else {
-                  displayStatus('Wake Lock API not supported.', 'info');
+                  wakeLock.addEventListener('release', () => { /* console.log('Wake Lock released.'); */ });
+                } catch (err) { /* console.error(`${err.name}, ${err.message}`); */ }
               }
             };
-
-            startScannerBtn.addEventListener('click', async () => {
-                // ... (existing code)
-                if (currentPairingId && /^[A-Z0-9]{6}$/.test(currentPairingId)) {
-                    await requestWakeLock(); // Request wake lock when scanner starts
-                    startScanner();
+            const releaseWakeLock = () => {
+                if(wakeLock !== null) {
+                    wakeLock.release().then(() => { wakeLock = null; });
                 }
-            });
-
+            };
             document.addEventListener('visibilitychange', async () => {
-              if (wakeLock !== null && document.visibilityState === 'visible') {
+              if (wakeLock !== null && document.visibilityState === 'visible' && isScannerActive) {
                 await requestWakeLock();
               }
             });
-
         });
     </script>
 </body>
