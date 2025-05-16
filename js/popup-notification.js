@@ -4,13 +4,6 @@
 (function() {
     // Check if already defined to prevent duplicate declaration
     if (window.PopupNotification && window.PopupNotification.initialized) {
-        // If an instance exists and is initialized, ensure methods are available on the global scope if needed
-        // This might be redundant if the original script already did this correctly.
-        if (window.popupNotification && typeof window.popupNotification.show !== 'function') {
-             // console.warn("PopupNotification class was defined, but instance methods were missing. Re-linking.");
-            // This implies the class was loaded, but the global instance setup failed or was overwritten.
-            // Re-creating or re-linking might be needed, or simply ensuring the constructor logic handles this.
-        }
         return; // Already loaded and initialized
     }
 
@@ -28,7 +21,7 @@
                 defaultDuration: options.defaultDuration || 5000,
                 containerClass: options.containerClass || 'popup-notification-container',
                 notificationClass: options.notificationClass || 'popup-notification',
-                zIndex: options.zIndex || 9999, // Kept for reference, but CSS should handle it
+                zIndex: options.zIndex || 9999, 
                 fetchFromServer: options.fetchFromServer !== undefined ? options.fetchFromServer : true,
                 fetchInterval: options.fetchInterval || 30000, // 30 seconds
                 fetchUrl: options.fetchUrl || '/billing/notification.php',
@@ -44,7 +37,6 @@
             this.fetchBackoffTime = 2000; // Initial backoff time
             this.fetchIntervalId = null; // Store interval ID for clearing
 
-            // Initialize when DOM is ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => this.init());
             } else {
@@ -52,83 +44,57 @@
             }
         }
 
-        /**
-         * Initialize the notification system
-         */
         init() {
             if (this.initialized) return;
-
             this.createContainer();
 
-            // Styles are now in global.css, no need to add them here via JS
-
             if (this.options.fetchFromServer) {
-                setTimeout(() => this.fetchFromServer(), 1500); // Initial fetch
-                if (this.fetchIntervalId) clearInterval(this.fetchIntervalId); // Clear previous interval if any
+                setTimeout(() => this.fetchFromServer(), 1500); 
+                if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
                 this.fetchIntervalId = setInterval(() => this.fetchFromServer(), this.options.fetchInterval);
             }
             
             this.initialized = true;
             PopupNotification.initialized = true; // Static flag
-            // console.log("PopupNotification initialized.");
         }
 
-        /**
-         * Create notification container
-         */
         createContainer() {
             if (document.querySelector('.' + this.options.containerClass)) {
                 this.container = document.querySelector('.' + this.options.containerClass);
-                // console.warn("PopupNotification container already exists. Re-using.");
                 return;
             }
             this.container = document.createElement('div');
             this.container.className = this.options.containerClass;
             this.container.setAttribute('aria-live', 'polite');
-            // Positioning classes will be handled by CSS based on this.options.position
-            // e.g., this.container.classList.add(`position-${this.options.position}`);
-            // For now, direct styling is kept for simplicity if CSS doesn't use position classes
-            this.container.style.position = 'fixed'; // Ensure it's fixed
+            this.container.style.position = 'fixed'; 
             this.container.style.zIndex = this.options.zIndex;
 
-
-            // Set container position based on options (can be enhanced with classes)
             const [posY, posX] = this.options.position.split('-');
             if (posY === 'top') this.container.style.top = '20px';
             if (posY === 'bottom') this.container.style.bottom = '20px';
-            
             if (posX === 'left') this.container.style.left = '20px';
             if (posX === 'right') this.container.style.right = '20px';
-            
             if (posX === 'center') {
                 this.container.style.left = '50%';
                 this.container.style.transform = 'translateX(-50%)';
             }
-             if (posY === 'center' && posX === 'center') { // True center
+            if (posY === 'center' && posX === 'center') { 
                 this.container.style.top = '50%';
                 this.container.style.left = '50%';
                 this.container.style.transform = 'translate(-50%, -50%)';
             }
-
-
             document.body.appendChild(this.container);
         }
 
-        /**
-         * Create and display a notification
-         * @param {Object} options Notification options (type, title, message, duration, id (server_id))
-         * @returns {HTMLElement|null} The notification element or null if not created
-         */
         show(options) {
             if (!this.container) {
-                // console.warn('PopupNotification container not initialized. Queuing notification.');
                 setTimeout(() => this.show(options), 100);
                 return null;
             }
 
             while (this.notifications.length >= this.options.maxNotifications) {
-                const oldestNotification = this.notifications.shift(); // Remove from beginning
-                this.hide(oldestNotification.id, true); // Hide immediately
+                const oldestNotification = this.notifications.shift();
+                this.hide(oldestNotification.id, true); 
             }
 
             const notificationId = 'notif-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
@@ -136,13 +102,13 @@
             const title = options.title || this.getDefaultTitle(type);
             const message = options.message || '';
             const duration = options.duration !== undefined ? options.duration : this.options.defaultDuration;
-            const serverId = options.id || null; // Server-side ID for marking as seen
+            const serverId = options.id || null; 
 
             const notification = document.createElement('div');
             notification.className = `${this.options.notificationClass} ${type}`;
             notification.id = notificationId;
             notification.setAttribute('role', 'alert');
-            notification.setAttribute('aria-live', 'assertive'); // More assertive for important messages
+            notification.setAttribute('aria-live', 'assertive'); 
 
             const iconHTML = this.getIconForType(type);
 
@@ -163,11 +129,9 @@
 
             notification.querySelector('.notification-close').addEventListener('click', () => this.hide(notificationId));
 
-            // Animate in
-            requestAnimationFrame(() => { // Ensures element is in DOM for transition
+            requestAnimationFrame(() => { 
                  setTimeout(() => notification.classList.add('show'), 10);
             });
-
 
             if (duration && duration > 0) {
                 const progressBar = notification.querySelector('.notification-progress');
@@ -180,21 +144,15 @@
             if (serverId) {
                 this.markAsSeen(serverId);
             }
-
             return notification;
         }
 
-        /**
-         * Hide and remove a notification
-         * @param {string} id Notification ID
-         * @param {boolean} immediate If true, remove without animation (e.g. for maxNotifications)
-         */
         hide(id, immediate = false) {
             const index = this.notifications.findIndex(n => n.id === id);
             if (index === -1) return;
 
             const { element } = this.notifications[index];
-            this.notifications.splice(index, 1); // Remove from tracking array first
+            this.notifications.splice(index, 1); 
 
             if (immediate) {
                 if (element.parentNode) {
@@ -204,7 +162,7 @@
             }
 
             element.classList.remove('show');
-            element.classList.add('exit'); // Add exit animation class
+            element.classList.add('exit'); 
 
             setTimeout(() => {
                 if (element.parentNode) {
@@ -260,12 +218,11 @@
                 return response.json();
             })
             .then(result => {
-                this.fetchRetryCount = 0; // Reset on success
+                this.fetchRetryCount = 0; 
                 this.fetchBackoffTime = 2000;
 
                 if (result.status === 'success' && Array.isArray(result.data)) {
                     result.data.forEach(notification => {
-                        // MongoDB returns _id as an object like {$oid: "actual_id_string"}
                         const serverNotificationId = notification._id && notification._id.$oid ? notification._id.$oid : notification._id;
                         
                         const exists = this.notifications.some(n => n.serverId === serverNotificationId);
@@ -274,8 +231,8 @@
                                 type: notification.type || 'info',
                                 title: notification.title || this.getDefaultTitle(notification.type || 'info'),
                                 message: notification.message,
-                                duration: notification.duration, // Server can specify duration
-                                id: serverNotificationId // Pass server ID for markAsSeen
+                                duration: notification.duration, 
+                                id: serverNotificationId 
                             });
                         }
                     });
@@ -288,12 +245,10 @@
                 this.fetchRetryCount++;
                 
                 if (err.message.includes('MongoDB driver missing') || err.message.includes('Expected JSON response')) {
-                    if (this.fetchRetryCount >= 3) { // After 3 quick fails
-                        // console.warn('Persistent issue fetching notifications. Pausing polling.');
+                    if (this.fetchRetryCount >= 3) { 
                         if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
-                        this.fetchIntervalId = null; // Stop polling
+                        this.fetchIntervalId = null; 
                         
-                        // Optionally, try to check DB connection after a longer delay
                         setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 5);
                         this.show({
                            type: 'warning',
@@ -302,8 +257,7 @@
                            duration: 10000
                         });
                     } else {
-                        // Exponential backoff for retries
-                        this.fetchBackoffTime = Math.min(this.fetchBackoffTime * 1.5, 60000); // Max 1 min
+                        this.fetchBackoffTime = Math.min(this.fetchBackoffTime * 1.5, 60000); 
                         if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
                         this.fetchIntervalId = setInterval(() => this.fetchFromServer(), this.fetchBackoffTime);
                     }
@@ -313,33 +267,29 @@
         
         checkDatabaseConnectionAndResume() {
             const formData = new FormData();
-            formData.append('action', 'check_connection'); // Ensure db-check.php handles this action
+            formData.append('action', 'check_connection'); 
 
-            fetch(this.options.dbCheckUrl, { // Use configured URL
-                method: 'POST', // Or GET, depending on how db-check.php is set up
-                body: formData, // If POST
+            fetch(this.options.dbCheckUrl, { 
+                method: 'POST', 
+                body: formData, 
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(response => response.json())
             .then(result => {
                 if (result.status === 'connected') {
-                    // console.log('Database connection restored. Resuming notification polling.');
                     this.fetchRetryCount = 0;
                     this.fetchBackoffTime = 2000;
                     if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
                     this.fetchIntervalId = setInterval(() => this.fetchFromServer(), this.options.fetchInterval);
-                    this.fetchFromServer(); // Fetch immediately
+                    this.fetchFromServer(); 
                 } else {
-                    // console.warn('Database connection check failed. Will retry later.');
-                    setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 2); // Longer delay
+                    setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 2); 
                 }
             })
             .catch(() => {
-                // console.error('Failed to execute database connection check. Will retry later.');
                 setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 2);
             });
         }
-
 
         getDefaultTitle(type) {
             const titles = { success: 'Success!', error: 'Error!', warning: 'Warning!', info: 'Information' };
@@ -347,7 +297,6 @@
         }
 
         getIconForType(type) {
-            // SVGs are styled by global.css, ensure they use `currentColor` or CSS vars
             const icons = {
                 success: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--success, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
                 error: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--error, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>`,
@@ -358,25 +307,20 @@
         }
     }
 
-    PopupNotification.initialized = false; // Static flag on the class
+    PopupNotification.initialized = false; 
 
-    // Assign to window
     window.PopupNotification = PopupNotification;
 
-    // Auto-initialize global instance if not already done (e.g. by footer.php)
-    // This ensures it's available even if footer script order changes or is missed.
     if (!window.popupNotification && document.readyState !== 'loading') {
         window.popupNotification = new PopupNotification();
     } else if (!window.popupNotification) {
         document.addEventListener('DOMContentLoaded', () => {
-            if (!window.popupNotification) { // Double check
+            if (!window.popupNotification) { 
                 window.popupNotification = new PopupNotification();
             }
         });
     }
 
-
-    // Override native alert
     if (!window._alertOverridden) {
         window._alertOverridden = true;
         window.originalAlert = window.alert;
@@ -385,14 +329,12 @@
                 window.popupNotification.info(String(message), 'System Alert');
             } else {
                 console.info("Fallback Alert (PopupNotification not ready):", message);
-                // window.originalAlert(message); // Optionally call original alert
             }
         };
     }
 
-})(); // End IIFE
+})(); 
 
-// Global confirmNotification function (styles are in global.css)
 window.confirmNotification = function(message, onConfirm, onCancel, options = {}) {
     const modalId = 'confirm-modal-' + Date.now();
     const backdrop = document.createElement('div');
@@ -400,7 +342,7 @@ window.confirmNotification = function(message, onConfirm, onCancel, options = {}
     backdrop.id = modalId;
 
     const modal = document.createElement('div');
-    modal.className = 'popup-notification-modal-content'; // Will pick up glass styling from global.css if .glass is added there
+    modal.className = 'popup-notification-modal-content'; 
 
     modal.innerHTML = `
         <div class="popup-notification-modal-header">
@@ -408,7 +350,7 @@ window.confirmNotification = function(message, onConfirm, onCancel, options = {}
             <button type="button" class="popup-notification-modal-close" aria-label="Close">×</button>
         </div>
         <div class="popup-notification-modal-body">
-            ${message} <!-- Allow HTML in message -->
+            ${message} 
         </div>
         <div class="popup-notification-modal-footer">
             <button type="button" class="popup-notification-modal-btn popup-notification-modal-btn-cancel">${options.cancelText || 'Cancel'}</button>
@@ -419,14 +361,12 @@ window.confirmNotification = function(message, onConfirm, onCancel, options = {}
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
 
-    // Show with animation (CSS driven)
     requestAnimationFrame(() => {
-        setTimeout(() => { // Ensures styles are applied for transition
+        setTimeout(() => { 
             backdrop.classList.add('show');
             modal.classList.add('show');
         }, 10);
     });
-
 
     const close = (callback) => {
         backdrop.classList.remove('show');
@@ -437,7 +377,7 @@ window.confirmNotification = function(message, onConfirm, onCancel, options = {}
             }
             document.removeEventListener('keydown', handleEscKey);
             if (typeof callback === 'function') callback();
-        }, 300); // Match CSS animation duration
+        }, 300); 
     };
 
     const handleEscKey = (e) => {
