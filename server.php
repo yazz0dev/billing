@@ -82,10 +82,10 @@ try {
     $driverOptions = [
         'serverSelectionTimeoutMS' => 10000, // Reasonable timeout
         'connectTimeoutMS' => 15000,         // Reasonable timeout
-        'ssl' => true, 
-        'tlsContext' => stream_context_create([
-            'ssl' => [] // Default SSL context, can be customized
-        ])
+        // 'ssl' => true, // SSL should be part of the MONGODB_URI for Atlas (e.g., ?ssl=true)
+        // 'tlsContext' => stream_context_create([ // Not typically needed if URI handles SSL
+        //     'ssl' => [] 
+        // ])
     ];
 
     if (strpos($uri, 'mongodb+srv://') === 0 || strpos($uri, '.mongodb.net') !== false) {
@@ -106,7 +106,7 @@ try {
             $connectionAttempts++;
             $mongoClient->selectDatabase('admin')->command(['ping' => 1]);
             $connectionSuccessful = true;
-            error_log("MongoDB connection established successfully after {$connectionAttempts} attempt(s)");
+            // error_log("MongoDB connection established successfully after {$connectionAttempts} attempt(s)");
         } catch (Exception $e) {
             error_log("MongoDB connection attempt {$connectionAttempts} failed: " . $e->getMessage());
             if ($connectionAttempts >= $maxAttempts) throw $e; 
@@ -128,21 +128,20 @@ try {
     }
     
     $existingCollections = [];
-    foreach ($db->listCollections() as $collectionInfo) { // Renamed variable
+    foreach ($db->listCollections() as $collectionInfo) { 
         $existingCollections[] = $collectionInfo->getName();
     }
     
-    $requiredCollections = ['user', 'products', 'bill', 'bill_new', 'popup_notifications', 'pairing_sessions']; // Added pairing_sessions and bill_new
+    $requiredCollections = ['user', 'products', 'bill', 'bill_new', 'popup_notifications', 'pairing_sessions'];
     foreach ($requiredCollections as $collectionName) {
         if (!in_array($collectionName, $existingCollections)) {
             $db->createCollection($collectionName);
-            // Add indexes for pairing_sessions
             if ($collectionName === 'pairing_sessions') {
                 $db->pairing_sessions->createIndex(['pairing_id' => 1], ['unique' => true]);
-                $db->pairing_sessions->createIndex(['expires_at' => 1]); // For TTL or cleanup
+                $db->pairing_sessions->createIndex(['expires_at' => 1]); 
                 $db->pairing_sessions->createIndex(['staff_user_id' => 1]);
             }
-            error_log("Created missing collection: {$collectionName}");
+            // error_log("Created missing collection: {$collectionName}");
         }
     }
     
@@ -222,29 +221,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     try {
         switch ($action) {
             case 'deleteProduct':
-                // ... (existing logic)
                 try {
                     if (isset($data['id'])) {
                         $productIdStr = $data['id'];
                         $query = [];
-                        
-                        error_log("Attempting to delete product with ID string: " . $productIdStr);
                         
                         $isValidObjectId = false;
                         try {
                             $mongoId = new MongoDB\BSON\ObjectId($productIdStr);
                             $isValidObjectId = true;
                         } catch (MongoDB\Exception\InvalidArgumentException $e) {
-                            error_log("InvalidArgumentException when validating ObjectId for delete: " . $productIdStr . " - " . $e->getMessage());
+                            // error_log("InvalidArgumentException when validating ObjectId for delete: " . $productIdStr . " - " . $e->getMessage());
                         } catch (Exception $e) { 
-                            error_log("Generic Exception when validating ObjectId for delete: " . $productIdStr . " - " . $e->getMessage());
+                            // error_log("Generic Exception when validating ObjectId for delete: " . $productIdStr . " - " . $e->getMessage());
                         }
 
                         if ($isValidObjectId) {
                             $query['_id'] = $mongoId;
-                            error_log("Using ObjectId query for delete: _id = ObjectId('" . $productIdStr . "')");
                         } else {
-                            error_log("Invalid ObjectId string for delete: " . $productIdStr);
                             $response = ['success' => false, 'message' => 'Invalid Product ID format for deletion.'];
                             break; 
                         }
@@ -252,36 +246,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                         $product = $db->products->findOne($query);
                         if ($product) {
                             $productName = isset($product->name) ? $product->name : "Unknown";
-                            error_log("Found product to delete: " . $productName . " (ID: " . $productIdStr . ")");
                             
                             $result = $db->products->deleteOne($query);
                             
                             if ($result->getDeletedCount() > 0) {
-                                error_log("Successfully deleted product: " . $productName);
                                 $response = ['success' => true, 'message' => 'Product deleted successfully.'];
                             } else {
-                                error_log("Delete operation executed but no documents were deleted for ID: " . $productIdStr);
                                 $response = ['success' => false, 'message' => 'Product not deleted - operation failed or product already deleted.'];
                             }
                         } else {
-                            error_log("No product found with the provided ObjectId for delete: " . $productIdStr);
                             $response = ['success' => false, 'message' => 'Product not found with the given ID.'];
                         }
                     } else {
-                        error_log("Delete request missing product ID in JSON data");
                         $response = ['success' => false, 'message' => 'Missing product ID.'];
                     }
                 } catch (MongoDB\Driver\Exception\Exception $e) {
-                    error_log("MongoDB error during product deletion (ID: ".(isset($data['id']) ? $data['id'] : 'N/A')."): " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                    error_log("MongoDB error during product deletion (ID: ".(isset($data['id']) ? $data['id'] : 'N/A')."): " . $e->getMessage());
                     $response = ['success' => false, 'message' => 'Database error during deletion. Check server logs.'];
                 } catch (Exception $e) {
-                    error_log("General error during product deletion (ID: ".(isset($data['id']) ? $data['id'] : 'N/A')."): " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                    error_log("General error during product deletion (ID: ".(isset($data['id']) ? $data['id'] : 'N/A')."): " . $e->getMessage());
                     $response = ['success' => false, 'message' => 'Server error during deletion. Check server logs.'];
                 }
                 break;
             
             case 'updateProduct':
-                // ... (existing logic)
                 try {
                     if (isset($data['id'], $data['name'], $data['price'], $data['stock'])) {
                         $productIdStr = $data['id'];
@@ -295,9 +283,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                             $mongoId = new MongoDB\BSON\ObjectId($productIdStr);
                             $isValidObjectId = true;
                         } catch (MongoDB\Exception\InvalidArgumentException $e) {
-                            error_log("InvalidArgumentException when validating ObjectId for update: " . $productIdStr . " - " . $e->getMessage());
+                            // error_log("InvalidArgumentException when validating ObjectId for update: " . $productIdStr . " - " . $e->getMessage());
                         } catch (Exception $e) {
-                            error_log("Generic Exception when validating ObjectId for update: " . $productIdStr . " - " . $e->getMessage());
+                            // error_log("Generic Exception when validating ObjectId for update: " . $productIdStr . " - " . $e->getMessage());
                         }
 
                         if (!$isValidObjectId) {
@@ -336,7 +324,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                 break;
                 
             case 'generateBill':
-                // ... (existing logic, ensure $db->bill_new is correct or change to $db->bills)
                  if (!isset($data['items']) || !is_array($data['items']) || empty($data['items'])) {
                     $response = ['success' => false, 'message' => 'No items provided or invalid format for bill generation.'];
                     http_response_code(400);
@@ -405,7 +392,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                         'created_at' => new MongoDB\BSON\UTCDateTime(),
                         'user_id' => $_SESSION['user_id'] ?? null, 'username' => $_SESSION['username'] ?? 'N/A' 
                     ];
-                    $insertResult = $db->bill_new->insertOne($billData, ['session' => $session]); // Using bill_new as in original
+                    $insertResult = $db->bill_new->insertOne($billData, ['session' => $session]);
 
                     if (!$insertResult->getInsertedId()) throw new Exception("Failed to save the bill.");
                     
@@ -417,29 +404,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                     if ($session && $session->isInTransaction()) $session->abortTransaction();
                     $response = ['success' => false, 'message' => "Invalid data for MongoDB operation: " . $e->getMessage()];
                     http_response_code(400); 
-                    error_log("GenerateBill MongoDB InvalidArgumentException: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                    error_log("GenerateBill MongoDB InvalidArgumentException: " . $e->getMessage());
                 } catch (MongoDB\Driver\Exception\Exception $e) { 
                     if ($session && $session->isInTransaction()) $session->abortTransaction();
                     $response = ['success' => false, 'message' => "MongoDB Driver Error: " . $e->getMessage()];
                     http_response_code(500); 
-                    error_log("GenerateBill MongoDB Driver Exception: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                    error_log("GenerateBill MongoDB Driver Exception: " . $e->getMessage());
                 } catch (Exception $e) { 
                     if ($session && $session->isInTransaction()) $session->abortTransaction();
                     $response = ['success' => false, 'message' => "Error generating bill: " . $e->getMessage()];
                     http_response_code(500); 
-                    error_log("GenerateBill Exception: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+                    error_log("GenerateBill Exception: " . $e->getMessage());
                 } catch (Throwable $t) { 
                     if ($session && $session->isInTransaction()) $session->abortTransaction();
                     $response = ['success' => false, 'message' => "Critical error generating bill: " . $t->getMessage()];
                     http_response_code(500);
-                    error_log("GenerateBill Throwable: " . $t->getMessage() . "\nTrace: " . $t->getTraceAsString());
+                    error_log("GenerateBill Throwable: " . $t->getMessage());
                 } finally {
                     if ($session) $session->endSession();
                 }
                 break;
         }
     } catch (Exception $e) { 
-        error_log("Server.php JSON POST Error (action: " . ($action ?? 'unknown') . "): " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+        error_log("Server.php JSON POST Error (action: " . ($action ?? 'unknown') . "): " . $e->getMessage());
         $response = ['success' => false, 'message' => 'A server error occurred: ' . $e->getMessage()];
     }
     echo json_encode($response);
@@ -448,7 +435,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json'); 
     $action = $_POST['action'];
-    $response = ['success' => false, 'status' => 'error', 'message' => 'Invalid action or insufficient data.']; // Default error with success flag
+    $response = ['success' => false, 'status' => 'error', 'message' => 'Invalid action or insufficient data.'];
 
     if (!$db || !$notificationSystem) {
         echo json_encode(['success' => false, 'status' => 'error', 'message' => 'Server error: Database or notification system not available.']);
@@ -458,7 +445,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     try {
         switch ($action) {
             case 'addProduct':
-                // ... (existing logic)
                 if (isset($_POST['name'], $_POST['price'], $_POST['stock'])) {
                     $product = [
                         'name' => filter_var($_POST['name'], FILTER_SANITIZE_STRING),
@@ -479,7 +465,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                 break;
 
             case 'billProduct':
-                // ... (existing logic)
                 $productIdStr = $_POST['productId'] ?? null;
                 $isValidObjectId = false;
                 $mongoProductId = null;
@@ -499,15 +484,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                     $product = $db->products->findOne(['_id' => $mongoProductId]);
                     if ($product && $product->stock >= $quantity) {
                         $db->products->updateOne(['_id' => $mongoProductId], ['$inc' => ['stock' => -$quantity]]);
-                        $db->bill->insertOne([ /* ... */ ]); // Original collection 'bill'
+                        // $db->bill->insertOne([ ... ]); // Original collection 'bill'
                         // ... (stock alerts & notifications logic) ...
                         $response = ['success' => true, 'status' => 'success', 'message' => "'{$product->name}' billed successfully."];
-                    } else { /* ... */ }
-                } else { /* ... */ }
+                    } else { $response['message'] = 'Product not found or insufficient stock.'; }
+                } else { $response['message'] = 'Missing or invalid product ID or quantity.'; }
                 break;
 
             case 'authenticateUser':
-                // ... (existing logic)
                  if (isset($_POST['username'], $_POST['password'])) {
                     $username = filter_var(trim($_POST['username']), FILTER_SANITIZE_STRING);
                     $password = $_POST['password']; 
@@ -533,39 +517,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                     $response = ['success' => false, 'message' => 'User not authenticated.'];
                     break;
                 }
-                // Generate a unique pairing ID
-                $pairing_id = strtoupper(substr(bin2hex(random_bytes(4)), 0, 6)); // e.g., ABC123
+                $pairing_id = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)); 
 
-                // Store in `pairing_sessions` collection
-                $expires_at = new MongoDB\BSON\UTCDateTime((time() + 15 * 60) * 1000); // 15 minutes expiry
+                $expires_at = new MongoDB\BSON\UTCDateTime((time() + 15 * 60) * 1000);
                 $sessionData = [
                     'pairing_id' => $pairing_id,
                     'staff_user_id' => $_SESSION['user_id'],
                     'staff_username' => $_SESSION['username'],
                     'created_at' => new MongoDB\BSON\UTCDateTime(),
                     'expires_at' => $expires_at,
-                    'status' => 'pending', // pending, active, expired
-                    'scanned_items' => [] // [{product_id: "...", scanned_at: ISODate, processed: false, quantity: 1}]
+                    'status' => 'pending', 
+                    'scanned_items' => [] 
                 ];
                 try {
                     $db->pairing_sessions->insertOne($sessionData);
                     $response = ['success' => true, 'pairing_id' => $pairing_id];
                 } catch (MongoDB\Driver\Exception\BulkWriteException $e) {
                     $writeConcernError = $e->getWriteResult()->getWriteConcernError();
-                    if ($writeConcernError && $writeConcernError->getCode() === 11000) { // Duplicate key
-                        // Retry ID generation or inform user
+                    if ($writeConcernError && $writeConcernError->getCode() === 11000) { 
                         $response = ['success' => false, 'message' => 'Could not generate a unique pairing ID. Please try again.'];
                     } else {
-                        throw $e; // Re-throw other BulkWriteExceptions
+                        throw $e; 
                     }
                 }
                 break;
 
             case 'submitScannedProduct':
                 if (isset($_POST['pairing_id'], $_POST['scanned_product_id'])) {
-                    $pairing_id = trim($_POST['pairing_id']);
+                    $pairing_id = trim(strtoupper($_POST['pairing_id']));
                     $scanned_product_id = trim($_POST['scanned_product_id']);
-                    $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1; // Assume quantity 1 if not provided
+                    $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
 
                     $session = $db->pairing_sessions->findOne(['pairing_id' => $pairing_id]);
 
@@ -573,23 +554,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                         $response = ['success' => false, 'message' => 'Pairing ID not found.'];
                         break;
                     }
-                    if ($session->expires_at->toDateTime() < new DateTime()) {
+                    if ($session->expires_at->toDateTime() < new DateTimeImmutable()) {
                         $db->pairing_sessions->updateOne(['_id' => $session->_id], ['$set' => ['status' => 'expired']]);
                         $response = ['success' => false, 'message' => 'Pairing session expired.'];
                         break;
                     }
-                     // Check if product ID is valid (exists in products collection)
-                    $product = $db->products->findOne(['_id' => new MongoDB\BSON\ObjectId($scanned_product_id)]); // Assuming product_id is an ObjectId string
+                    $product = null;
+                    $isValidObjectId = false;
+                    try {
+                        $mongoProdId = new MongoDB\BSON\ObjectId($scanned_product_id);
+                        $isValidObjectId = true;
+                    } catch (MongoDB\Exception\InvalidArgumentException $e) {
+                        // Not a valid ObjectId, might be a different type of barcode (e.g. EAN)
+                        // For now, we require ObjectId string. This can be extended.
+                    }
+
+                    if ($isValidObjectId) {
+                        $product = $db->products->findOne(['_id' => $mongoProdId]);
+                    } else {
+                        // If you support other barcode types, query by that field here.
+                        // e.g., $product = $db->products->findOne(['barcode_ean' => $scanned_product_id]);
+                    }
+                     
                     if (!$product) {
-                        $response = ['success' => false, 'message' => "Scanned Product ID '{$scanned_product_id}' not found in database."];
+                        $response = ['success' => false, 'message' => "Scanned Product ID/Barcode '{$scanned_product_id}' not found in database."];
                         break;
                     }
 
-
                     $newItem = [
-                        'product_id' => $scanned_product_id,
-                        'product_name' => $product->name, // Store name for easier display if needed
-                        'price' => $product->price,       // Store price for consistency
+                        'product_id' => (string)$product->_id, // Store the canonical DB ID (ObjectId string)
+                        'product_name' => $product->name, 
+                        'price' => $product->price,       
                         'scanned_at' => new MongoDB\BSON\UTCDateTime(),
                         'processed' => false,
                         'quantity' => $quantity
@@ -599,14 +594,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                         ['_id' => $session->_id],
                         [
                             '$push' => ['scanned_items' => $newItem],
-                            '$set' => ['status' => 'active'] // Mark as active on first scan
+                            '$set' => ['status' => 'active'] 
                         ]
                     );
 
                     if ($updateResult->getModifiedCount() > 0) {
-                        $response = ['success' => true, 'message' => 'Product scan received.'];
-                         // Notify staff via popup if desired (might be too noisy)
-                        // $notificationSystem->saveNotification("Product '{$product->name}' scanned by mobile.", 'info', (string)$session->staff_user_id, 3000, "Mobile Scan");
+                        $response = ['success' => true, 'message' => 'Product scan received.', 'product_name' => $product->name];
                     } else {
                         $response = ['success' => false, 'message' => 'Failed to record scanned product.'];
                     }
@@ -631,7 +624,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
     header('Content-Type: application/json'); 
     $action = $_GET['action'];
-    $response = ['success' => false, 'message' => 'Unknown GET action or error.']; // Default error with success flag for GET
+    $response = ['success' => false, 'message' => 'Unknown GET action or error.']; 
 
     if (!$db) { 
         error_log("DB not available for GET action: " . $action);
@@ -643,12 +636,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
         switch ($action) {
             case 'getProducts':
                 $products = $db->products->find([], ['sort' => ['name' => 1]])->toArray();
-                // No 'success' wrapper for direct data array if that's the client expectation
                 echo json_encode($products);
-                exit; // Exit directly after sending data
+                exit; 
 
             case 'getProduct':
-                // ... (existing logic)
                 if (isset($_GET['id'])) {
                     $productIdStr = $_GET['id'];
                     $isValidObjectId = false; $mongoId = null;
@@ -663,51 +654,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                 break;
 
             case 'getBills':
-                $bills = $db->bill->find([], ['sort' => ['date' => -1]])->toArray();
+                $bills = $db->bill->find([], ['sort' => ['date' => -1]])->toArray(); // or bill_new
                 echo json_encode($bills); 
                 exit;
             
             case 'getSales': 
-                $sales = $db->bill->find([], ['sort' => ['date' => -1]])->toArray();
+                $sales = $db->bill_new->find([], ['sort' => ['created_at' => -1]])->toArray(); // or bill
                 echo json_encode($sales);
                 exit;
             
             case 'getScannedItems':
                 if (isset($_GET['pairing_id'])) {
-                    $pairing_id = $_GET['pairing_id'];
+                    $pairing_id = trim(strtoupper($_GET['pairing_id']));
                     $session = $db->pairing_sessions->findOne([
                         'pairing_id' => $pairing_id,
-                        'staff_user_id' => $_SESSION['user_id'] // Ensure only the correct staff gets items
+                        'staff_user_id' => $_SESSION['user_id'] 
                     ]);
 
                     if (!$session) {
                         $response = ['success' => false, 'message' => 'Pairing session not found or not authorized.'];
                         break;
                     }
-                    if ($session->expires_at->toDateTime() < new DateTime()) {
+                    if ($session->expires_at->toDateTime() < new DateTimeImmutable()) {
                         $db->pairing_sessions->updateOne(['_id' => $session->_id], ['$set' => ['status' => 'expired']]);
                         $response = ['success' => false, 'message' => 'Pairing session expired.'];
                         break;
                     }
 
                     $unprocessedItems = [];
-                    $updateOps = [];
+                    $itemUpdateQueries = []; // For bulkWrite
                     
-                    foreach ($session->scanned_items as $key => $item) {
+                    foreach ($session->scanned_items as $index => $item) { // Need index for positional operator
                         if (isset($item->processed) && $item->processed === false) {
-                            $unprocessedItems[] = $item; // Send the full item object (product_id, quantity, name, price)
-                             // Prepare to mark as processed: targeting specific array element
-                            $updateOps[] = new MongoDB\UpdateOne(
-                                ['_id' => $session->_id, 'scanned_items.scanned_at' => $item->scanned_at], // Find by unique property like scanned_at
-                                ['$set' => ['scanned_items.$.processed' => true]]
+                            $unprocessedItems[] = $item; 
+                             // Mark as processed using positional operator $
+                            $itemUpdateQueries[] = new MongoDB\UpdateOne(
+                                ['_id' => $session->_id, "scanned_items.scanned_at" => $item->scanned_at], // More robust match
+                                ['$set' => ["scanned_items.$.processed" => true]]
                             );
                         }
                     }
 
-                    if (!empty($updateOps)) {
-                        $result = $db->pairing_sessions->bulkWrite($updateOps);
-                        if ($result->getModifiedCount() !== count($unprocessedItems)) {
-                            error_log("Mismatch in marking scanned items as processed for pairing_id: " . $pairing_id);
+                    if (!empty($itemUpdateQueries)) {
+                        $bulkWriteResult = $db->pairing_sessions->bulkWrite($itemUpdateQueries);
+                        if ($bulkWriteResult->getModifiedCount() !== count($unprocessedItems)) {
+                            error_log("Mismatch processing scanned items for pairing_id: {$pairing_id}. Expected: " . count($unprocessedItems) . ", Modified: " . $bulkWriteResult->getModifiedCount());
                         }
                     }
                     $response = ['success' => true, 'items' => $unprocessedItems];
@@ -725,7 +716,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
         $response = ['success' => false, 'message' => 'A server error occurred during data retrieval: ' . $e->getMessage()];
     }
     
-    echo json_encode($response); // Echo the final response
+    echo json_encode($response); 
     exit;
 } else {
     header('Content-Type: application/json');
