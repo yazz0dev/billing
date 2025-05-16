@@ -11,7 +11,6 @@
     { "src": "js/**", "use": "@vercel/static" }
   ],
   "routes": [
-    // Serve static files first
     { "src": "/global.css", "dest": "/global.css" },
     { "src": "/js/(.*)", "dest": "/js/$1" },
     { "src": "/staff/index.html", "dest": "/staff/index.html" }, 
