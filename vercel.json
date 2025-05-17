@@ -5,36 +5,24 @@
       "src": "api/index.php",
       "use": "@vercel/php"
     }
-    // Vercel's @vercel/php runtime also serves static files
-    // from the root directory by default if no specific
-    // route matches them.
   ],
   "routes": [
-    // These routes assume your application's internal base path is /billing/
-    // And your router.php is designed to handle paths *after* /billing/
-    // e.g. /billing/login, /billing/admin/index.php
     {
       "src": "/billing/(favicon\\.ico|global\\.css|js/.+|images/.+|fonts/.+)",
-      "dest": "/$1" // Serve these static files directly from root if they exist
+      "dest": "/$1"
     },
     {
-      "src": "/billing/(.*)", // All other /billing/ paths
-      "dest": "/api/index.php" // Go to your PHP router
+      "src": "/billing/(.*)",
+      "dest": "/api/index.php"
     },
     {
-      "src": "/billing", // Path /billing exactly
+      "src": "/billing",
       "dest": "/api/index.php"
     }
-    // If you want the app to be accessible at the domain root (e.g., myapp.vercel.app/login)
-    // instead of myapp.vercel.app/billing/login, you'd adjust routes and
-    // your PHP router's $base_path.
-    // For root access:
-    // { "src": "/(.*)", "dest": "/api/index.php" }
-    // And set $base_path = '/' in router.php.
   ],
   "env": {
     "APP_ENV": "production",
-    "MONGODB_URI": "@mongodb-atlas-uri", // Name of the Vercel Environment Variable
-    "APP_BASE_PATH": "/billing" // Your PHP router can use this
+    "MONGODB_URI": "@mongodb-atlas-uri",
+    "APP_BASE_PATH": "/billing"
   }
 }
