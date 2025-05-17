@@ -18,7 +18,7 @@ register_shutdown_function(function () {
 });
 
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+ini_set('display_errors', 0); // Keep 0 for production/Vercel, 1 for local debugging
 
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
@@ -32,6 +32,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     }
 }
 
+// config.php will define MONGODB_URI_CONFIG for local fallback
 if (file_exists(__DIR__ . '/config.php')) {
     require_once __DIR__ . '/config.php';
 } else {
@@ -55,7 +56,15 @@ try {
     if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
         throw new Exception("Autoloader not found. This is a critical error.");
     }
-    $uri = defined('mongodb_uri') ? MONGODB_URI : 'mongodb://localhost:27017';
+
+    // Prioritize environment variable (from Vercel), then config.php, then default.
+    $uri = getenv('MONGODB_URI') ?: (defined('MONGODB_URI_CONFIG') ? MONGODB_URI_CONFIG : 'mongodb://localhost:27017');
+    
+    if ($uri === 'mongodb://localhost:27017' && !getenv('MONGODB_URI') && !defined('MONGODB_URI_CONFIG')) {
+        error_log("WARNING: MongoDB URI is falling back to localhost default. Ensure MONGODB_URI env var is set on Vercel or MONGODB_URI_CONFIG is defined in config.php for local.");
+    }
+
+
     $uriOptions = [];
     $driverOptions = ['serverSelectionTimeoutMS' => 10000, 'connectTimeoutMS' => 15000];
 
@@ -79,7 +88,7 @@ try {
         }
     }
     $db = $mongoClient->selectDatabase('billing');
-    $notificationSystem = new NotificationSystem($mongoClient);
+    $notificationSystem = new NotificationSystem($mongoClient); // Pass client to NotificationSystem
     if (!$notificationSystem->checkDbConnection()) {
         throw new Exception("Notification system database connection check failed");
     }
@@ -285,7 +294,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $product = null; $mongoProdId = null;
                 try { $mongoProdId = new MongoDB\BSON\ObjectId($scanned_product_id); } catch (Exception $e) { /* Not ObjectId */ }
                 if ($mongoProdId) $product = $db->products->findOne(['_id' => $mongoProdId]);
+                if (!$product) { // Try searching by name if ID fails (could be a barcode string not an ObjectId)
+                    $product = $db->products->findOne(['name' => $scanned_product_id]); // or a field that stores barcode
+                }
                 if (!$product) { $response['message'] = "Product '{$scanned_product_id}' not found."; break; }
+
                 $newItem = ['product_id' => (string)$product->_id, 'product_name' => $product->name, 'price' => (float)$product->price, 'quantity' => $quantity, 'scanned_at' => new MongoDB\BSON\UTCDateTime(), 'processed' => false];
                 $updateResult = $db->pairing_sessions->updateOne(['_id' => $activePairingSession->_id], ['$push' => ['scanned_items' => $newItem]]);
                 if ($updateResult->getModifiedCount() > 0) {
@@ -314,11 +327,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (isset($_GET['id'])) {
                     $productIdStr = $_GET['id']; $mongoId = null;
                     try { $mongoId = new MongoDB\BSON\ObjectId($productIdStr); } catch (Exception $e) { /* Invalid ID */ }
+                    
+                    $product = null;
                     if ($mongoId) {
                         $product = $db->products->findOne(['_id' => $mongoId]);
-                        if ($product) { echo json_encode($product); exit; }
-                        else { $response['message'] = 'Product not found.'; http_response_code(404); }
-                    } else { $response['message'] = 'Invalid Product ID.'; http_response_code(400); }
+                    } else { // If not a valid ObjectId, maybe it's a barcode string (name or other field)
+                        // Assuming 'name' can also be a barcode for simplicity here.
+                        // In a real system, you'd have a dedicated 'barcode' field.
+                        $product = $db->products->findOne(['name' => $productIdStr]);
+                    }
+
+                    if ($product) { echo json_encode($product); exit; }
+                    else { $response['message'] = 'Product not found.'; http_response_code(404); }
                 } else { $response['message'] = 'Product ID missing.'; http_response_code(400); }
                 break;
 
