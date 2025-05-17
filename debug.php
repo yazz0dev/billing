@@ -1,4 +1,6 @@
 <?php
+// billing/debug.php
+
 // Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -23,27 +25,46 @@ if (file_exists($autoloaderPath)) {
     exit;
 }
 
-// Include configuration file
+// Include configuration file (which defines MONGODB_URI_CONFIG)
 $configPath = __DIR__ . '/config.php';
 if (file_exists($configPath)) {
     require_once $configPath;
     echo "SUCCESS: Config.php loaded successfully from: " . $configPath . "\n";
+    if (defined('MONGODB_URI_CONFIG')) {
+        echo "INFO: MONGODB_URI_CONFIG (from config.php for local fallback) is defined: " . MONGODB_URI_CONFIG . "\n";
+    } else {
+        echo "WARNING: MONGODB_URI_CONFIG is NOT defined in config.php.\n";
+    }
 } else {
     echo "ERROR: config.php not found at " . $configPath . ".\n";
-    echo "Please ensure it exists and defines MONGODB_URI.\n";
+    echo "Please ensure it exists and can define MONGODB_URI_CONFIG for local testing.\n";
     if (php_sapi_name() !== 'cli') echo "</pre>";
-    exit;
+    // We don't exit here if config.php is missing, as getenv('MONGODB_URI') might still work.
 }
 
-// Check if MONGODB_URI is defined
-if (!defined('MONGODB_URI')) {
-    echo "ERROR: MONGODB_URI is not defined in config.php.\n";
-    echo "Please define it in " . $configPath . " (e.g., define('MONGODB_URI', 'mongodb://user:pass@host:port/db');)\n";
-    if (php_sapi_name() !== 'cli') echo "</pre>";
-    exit;
+// Determine the MongoDB URI
+$uri_from_env = getenv('MONGODB_URI');
+$uri_from_config = defined('MONGODB_URI_CONFIG') ? MONGODB_URI_CONFIG : null;
+$uri_default_fallback = 'mongodb://localhost:27017';
+
+$actual_uri_used = null;
+$uri_source = "unknown";
+
+if ($uri_from_env) {
+    $actual_uri_used = $uri_from_env;
+    $uri_source = "Environment Variable (MONGODB_URI from Vercel/OS)";
+} elseif ($uri_from_config) {
+    $actual_uri_used = $uri_from_config;
+    $uri_source = "Config File (MONGODB_URI_CONFIG)";
+} else {
+    $actual_uri_used = $uri_default_fallback;
+    $uri_source = "Default Fallback (mongodb://localhost:27017)";
 }
 
-echo "INFO: MONGODB_URI found: " . MONGODB_URI . "\n\n";
+echo "\nINFO: Determined MongoDB URI to use:\n";
+echo "  Source: " . $uri_source . "\n";
+echo "  URI: " . $actual_uri_used . "\n\n";
+
 
 // Import MongoDB classes
 use MongoDB\Client;
@@ -56,12 +77,11 @@ use MongoDB\Driver\Exception\ServerSelectionTimeoutException;
 $mongoClient = null;
 
 try {
-    echo "INFO: Attempting to connect to MongoDB...\n\n";
+    echo "INFO: Attempting to connect to MongoDB using the determined URI...\n\n";
 
-    echo "IMPORTANT: If connecting to MongoDB Atlas, ensure your server's current IP address is whitelisted in the Atlas UI (Network Access settings).\n";
+    echo "IMPORTANT: If connecting to MongoDB Atlas, ensure your server's current IP address (or 0.0.0.0/0 for Vercel) is whitelisted in the Atlas UI (Network Access settings).\n";
     echo "           Failure to do so is a common cause of connection timeouts and handshake errors.\n\n";
 
-    $uri = MONGODB_URI;
     $uriOptions = []; // URI options, e.g., ['replicaSet' => 'myReplicaSet']
     $driverOptions = [ // Driver options
         'serverSelectionTimeoutMS' => 5000, // How long to try selecting a server (milliseconds)
@@ -69,7 +89,7 @@ try {
     ];
 
     // For Atlas SRV URIs, enable retryWrites and ServerApi (mimicking server.php logic)
-    if (strpos($uri, 'mongodb+srv://') === 0 || strpos($uri, '.mongodb.net') !== false) {
+    if (strpos($actual_uri_used, 'mongodb+srv://') === 0 || strpos($actual_uri_used, '.mongodb.net') !== false) {
         echo "INFO: Atlas SRV URI detected. Applying specific options (retryWrites=true, ServerApi=V1).\n";
         $uriOptions['retryWrites'] = true;
         if (class_exists('MongoDB\\Driver\\ServerApi')) {
@@ -86,7 +106,7 @@ try {
     echo "INFO: Driver Options being used: " . json_encode(array_keys($driverOptions)) . " (ServerApi object not shown fully in json_encode)\n\n";
     
     // Create a new client instance
-    $mongoClient = new Client($uri, $uriOptions, $driverOptions);
+    $mongoClient = new Client($actual_uri_used, $uriOptions, $driverOptions);
     echo "INFO: MongoDB client instantiated.\n";
 
     // Test connection by pinging the admin database
@@ -116,7 +136,7 @@ try {
     echo "ERROR: MongoDB Authentication Failed!\n";
     echo "Message: " . $e->getMessage() . "\n";
     echo "Common causes:\n";
-    echo "  - Incorrect username or password in MONGODB_URI.\n";
+    echo "  - Incorrect username or password in the MongoDB URI.\n";
     echo "  - User does not exist or has insufficient permissions for the 'authSource' database (usually 'admin' or the specific database).\n";
     echo "  - IP Access List in MongoDB Atlas might not include your server's IP address.\n";
     echo "Trace: \n" . $e->getTraceAsString() . "\n";
@@ -127,7 +147,7 @@ try {
     echo "  - MongoDB server is not reachable (down, network issue, incorrect host/port).\n";
     echo "  - Firewall blocking outgoing connections on port 27017 (or custom port).\n";
     echo "  - For Atlas, ensure your server's IP is whitelisted in Network Access settings.\n";
-    echo "  - 'connectTimeoutMS' (" . $driverOptions['connectTimeoutMS'] . "ms) might be too short for your network latency.\n";
+    echo "  - 'connectTimeoutMS' (" . ($driverOptions['connectTimeoutMS'] ?? 'N/A') . "ms) might be too short for your network latency.\n";
     echo "Trace: \n" . $e->getTraceAsString() . "\n";
 } catch (ServerSelectionTimeoutException $e) {
     echo "ERROR: MongoDB Server Selection Timed Out!\n";
@@ -137,7 +157,7 @@ try {
     echo "  - DNS resolution issues for SRV records (if using mongodb+srv:// URI).\n";
     echo "  - SSL/TLS handshake issues. Ensure your PHP has up-to-date CA certificates.\n";
     echo "     (Check `openssl.cafile` in php.ini or if your system's CA bundle is current).\n";
-    echo "  - 'serverSelectionTimeoutMS' (" . $driverOptions['serverSelectionTimeoutMS'] . "ms) might be too short.\n";
+    echo "  - 'serverSelectionTimeoutMS' (" . ($driverOptions['serverSelectionTimeoutMS'] ?? 'N/A') . "ms) might be too short.\n";
     echo "Trace: \n" . $e->getTraceAsString() . "\n";
 } catch (MongoDBDriverException $e) {
     echo "ERROR: MongoDB Driver Exception Occurred!\n";
