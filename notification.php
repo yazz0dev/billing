@@ -2,9 +2,9 @@
 /**
  * Centralized Popup Notification System
  */
-//billing/notification.php`** (Minor improvements for robustness)
+//billing/notification.php
 
-// Include configuration file
+// config.php will define MONGODB_URI_CONFIG for local fallback
 if (file_exists(__DIR__ . '/config.php')) {
     require_once __DIR__ . '/config.php';
 }
@@ -40,12 +40,18 @@ class NotificationSystem {
                 $this->client = $existingClient;
                 error_log("NotificationSystem: Using provided MongoDB client");
             } else {
-                $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
+                // Prioritize environment variable (from Vercel), then config.php, then default.
+                $uri = getenv('MONGODB_URI') ?: (defined('MONGODB_URI_CONFIG') ? MONGODB_URI_CONFIG : 'mongodb://localhost:27017');
+                
+                if ($uri === 'mongodb://localhost:27017' && !getenv('MONGODB_URI') && !defined('MONGODB_URI_CONFIG')) {
+                    error_log("WARNING (NotificationSystem): MongoDB URI is falling back to localhost default. Ensure MONGODB_URI env var is set on Vercel or MONGODB_URI_CONFIG is defined in config.php for local.");
+                }
+
                 $this->client = new MongoDB\Client($uri, [], [
                     'serverSelectionTimeoutMS' => 5000,
                     'connectTimeoutMS' => 10000
                 ]);
-                error_log("NotificationSystem: Created new MongoDB client");
+                error_log("NotificationSystem: Created new MongoDB client for URI: " . substr($uri, 0, strpos($uri, '@') ?: strlen($uri)));
             }
             
             $this->db = $this->client->selectDatabase('billing');
@@ -64,7 +70,8 @@ class NotificationSystem {
         if ($this->db === null) {
             // Attempt to reconnect or throw an error
             try {
-                $uri = defined('MONGODB_URI') ? MONGODB_URI : 'mongodb://localhost:27017';
+                 // Prioritize environment variable (from Vercel), then config.php, then default.
+                $uri = getenv('MONGODB_URI') ?: (defined('MONGODB_URI_CONFIG') ? MONGODB_URI_CONFIG : 'mongodb://localhost:27017');
                 
                 $uriOptions = [];
                 $driverOptions = [
@@ -87,6 +94,7 @@ class NotificationSystem {
                 $this->db->command(['ping' => 1]);
                 
                 if ($this->db === null) throw new Exception("Reconnection failed.");
+                error_log("NotificationSystem: DB Reconnection successful.");
                 return true;
             } catch (Exception $e) {
                  error_log("NotificationSystem: DB Reconnection failed: " . $e->getMessage());
