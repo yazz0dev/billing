@@ -1,7 +1,7 @@
 {
   "version": 2,
   "functions": {
-    "api/index.php": {
+    "public/index.php": {
       "runtime": "vercel-php@0.7.3"
     }
   },
@@ -17,17 +17,12 @@
       "dest": "/public/js/$1"
     },
     {
-      "src": "/html5-qrcode.min.js", 
-      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
-      "dest": "/public/js/html5-qrcode.min.js" 
-    },
-    {
       "src": "/favicon.ico",
       "dest": "/public/favicon.ico"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.php"
+      "dest": "/public/index.php"
     }
   ],
   "env": {
