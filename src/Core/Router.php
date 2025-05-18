@@ -8,6 +8,13 @@ use Core\Exception\AccessDeniedException; // Custom exception
 class Router
 {
     protected array $routes = [];
+    protected string $basePath = '';
+
+    public function __construct()
+    {
+        // Get the base path from the defined constant or default to empty string
+        $this->basePath = defined('BASE_PATH') ? BASE_PATH : '';
+    }
 
     public function addRoute(string $method, string $path, array $handlerConfig): void // Renamed $handler to $handlerConfig for clarity
     {
@@ -23,6 +30,12 @@ class Router
     public function dispatch(string $requestMethod, string $requestUri): void
     {
         $requestMethod = strtoupper($requestMethod);
+        
+        // Remove the base path from the request URI if it exists
+        if (!empty($this->basePath) && strpos($requestUri, $this->basePath) === 0) {
+            $requestUri = substr($requestUri, strlen($this->basePath));
+        }
+        
         $uri = $this->normalizePath(parse_url($requestUri, PHP_URL_PATH) ?: '/');
         $rawBody = file_get_contents('php://input'); // Read raw body once
 

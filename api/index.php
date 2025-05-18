@@ -2,9 +2,21 @@
 
 declare(strict_types=1);
 
-define('PROJECT_ROOT', dirname(__DIR__));
+if (!defined('PROJECT_ROOT')) {
+    define('PROJECT_ROOT', dirname(__DIR__));
+}
 
 require PROJECT_ROOT . '/vendor/autoload.php';
+
+// Define the base path if not already defined in the main index.php
+if (!defined('BASE_PATH')) {
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $baseDir = dirname($scriptName);
+    if ($baseDir === '/' || $baseDir === '\\') {
+        $baseDir = '';
+    }
+    define('BASE_PATH', $baseDir);
+}
 
 use App\Auth\AuthController;
 use App\Admin\AdminController;
@@ -42,14 +54,21 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
 }
 
+// Get the request URI and remove the base path if needed
 $requestMethod = $_SERVER['REQUEST_METHOD'];
-$requestUri = $_SERVER['REQUEST_URI']; // Router will parse path
+$requestUri = $_SERVER['REQUEST_URI'];
+
+// Remove base path from request URI if it exists
+if (!empty(BASE_PATH) && strpos($requestUri, BASE_PATH) === 0) {
+    $requestUri = substr($requestUri, strlen(BASE_PATH));
+}
 
 $router = new Router();
 
 // --- Define Routes ---
 // Public pages
 $router->addRoute('GET', '/',           [AuthController::class, 'showHomePage']);
+$router->addRoute('GET', '/billing',    [AuthController::class, 'showHomePage']); // Add explicit route for /billing
 $router->addRoute('GET', '/login',      [AuthController::class, 'showLoginForm']);
 $router->addRoute('POST', '/login',     [AuthController::class, 'handleLogin']);
 $router->addRoute('GET', '/logout',     [AuthController::class, 'logout']);

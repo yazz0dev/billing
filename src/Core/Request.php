@@ -27,7 +27,7 @@ class Request
     public function post(string $key, $default = null) { return $this->post[$key] ?? $default; }
     public function input(string $key, $default = null) { return $this->post[$key] ?? $this->query[$key] ?? $default; }
 
-    public function json(string $key = null, $default = null)
+    public function json(?string $key = null, $default = null) // Modified: $key is now ?string
     {
         if ($this->jsonBody === null) {
             $contentType = $this->server['CONTENT_TYPE'] ?? '';

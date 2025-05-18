@@ -21,9 +21,18 @@ class UserRepository
     }
 
     // You can add createUser, findById, etc. methods here
-    public function createUser(string $username, string $password, string $role, string $email = null): ?string
+    /**
+     * Creates a new user.
+     *
+     * @param string $username
+     * @param string $password Hashed password
+     * @param string $role
+     * @param string|null $email
+     * @return string|null The inserted ID or null on failure
+     */
+    public function createUser(string $username, string $password, string $role, ?string $email = null): ?string // Modified: $email is now ?string
     {
-      
+        // Check if username already exists
         if ($this->findByUsername($username)) {
             return null; // User already exists
         }
