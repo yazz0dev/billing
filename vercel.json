@@ -6,7 +6,6 @@
     }
   },
   "routes": [
-    // 1. Serve static assets from the "public" directory
     {
       "src": "/css/(.*)",
       "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
@@ -21,9 +20,6 @@
       "src": "/favicon.ico",
       "dest": "/public/favicon.ico"
     },
-    // Add other static types (images, fonts) if needed
-
-    // 2. All other requests go to the PHP application
     {
       "src": "/(.*)",
       "dest": "/api/index.php"
@@ -31,7 +27,7 @@
   ],
   "env": {
     "APP_ENV": "production",
-    "MONGODB_URI": "@mongodb_uri", // Replace with your Vercel secret name
-    "APP_URL": "https://your-deployment-url.vercel.app" // Your actual app URL
+    "MONGODB_URI": "@mongodb_uri", 
+    "APP_URL": "https://billing-wheat.vercel.app"
   }
     }
