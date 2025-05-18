@@ -56,7 +56,11 @@
 
         fetch('/api/notifications/fetch', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-Requested-With': 'XMLHttpRequest', 
+                'Accept': 'application/json' 
+            },
             body: JSON.stringify({ popup_action: 'get' }) // Assuming API expects this
         })
         .then(response => {

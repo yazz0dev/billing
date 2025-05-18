@@ -111,9 +111,21 @@ class MobileScannerController extends Controller
             $response->json(['success' => false, 'message' => 'Mobile user not authenticated.'], 401); return;
         }
         $currentUser = $this->authService->user();
-        $scannedProductIdOrBarcode = trim($request->json('scanned_product_id', $request->post('scanned_product_id')));
-        $quantity = (int) $request->json('quantity', $request->post('quantity', 1));
+        
+        // Check JSON first, then fall back to POST
+        $scannedProductIdOrBarcode = $request->json('scanned_product_id');
+        if ($scannedProductIdOrBarcode === null) {
+            $scannedProductIdOrBarcode = $request->post('scanned_product_id');
+        }
+        
+        $quantity = (int) $request->json('quantity');
+        if ($quantity <= 0) {
+            $quantity = (int) $request->post('quantity', 1);
+            if ($quantity <= 0) $quantity = 1;
+        }
 
+        $scannedProductIdOrBarcode = trim($scannedProductIdOrBarcode ?? '');
+        
         if (empty($scannedProductIdOrBarcode)) {
             $response->json(['success' => false, 'message' => 'Scanned product ID/barcode missing.'], 400); return;
         }

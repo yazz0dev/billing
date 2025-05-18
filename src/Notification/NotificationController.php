@@ -25,7 +25,11 @@ class NotificationController // Does not extend Controller as it's pure API
         }
 
         // Accept both JSON and form-data for popup_action
-        $popupAction = $request->json('popup_action', $request->post('popup_action'));
+        $popupAction = $request->json('popup_action');
+        if ($popupAction === null) {
+            $popupAction = $request->post('popup_action');
+        }
+        
         if ($popupAction !== null && $popupAction !== 'get') {
             $response->json(['status' => 'error', 'message' => 'Invalid popup_action.'], 400);
             return;
@@ -56,7 +60,11 @@ class NotificationController // Does not extend Controller as it's pure API
             return;
         }
         
-        $notificationId = $request->json('notification_id', $request->post('notification_id'));
+        $notificationId = $request->json('notification_id');
+        if (empty($notificationId)) {
+            $notificationId = $request->post('notification_id');
+        }
+        
         if (empty($notificationId)) {
             $response->json(['status' => 'error', 'message' => 'Notification ID is required.'], 400);
             return;

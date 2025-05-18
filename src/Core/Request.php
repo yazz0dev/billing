@@ -29,9 +29,18 @@ class Request
 
     public function json(string $key = null, $default = null)
     {
-        if ($this->jsonBody === null && str_contains($this->server['CONTENT_TYPE'] ?? '', 'application/json')) {
-            $this->jsonBody = json_decode($this->rawBody, true);
-            if (json_last_error() !== JSON_ERROR_NONE) $this->jsonBody = []; // or handle error
+        if ($this->jsonBody === null) {
+            $contentType = $this->server['CONTENT_TYPE'] ?? '';
+            // More robust check for JSON content type
+            if (str_contains(strtolower($contentType), 'application/json')) {
+                $this->jsonBody = json_decode($this->rawBody, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $this->jsonBody = []; // Empty array on parsing error
+                    error_log("JSON parsing error: " . json_last_error_msg() . " - Raw body: " . substr($this->rawBody, 0, 100));
+                }
+            } else {
+                $this->jsonBody = [];
+            }
         }
         if ($key === null) return $this->jsonBody;
         return $this->jsonBody[$key] ?? $default;

@@ -209,14 +209,16 @@
         info(message, title = 'Information', duration) { return this.show({ type: 'info', title, message, duration }); }
 
         markAsSeen(serverId) {
-            const formData = new FormData();
-            formData.append('popup_action', 'mark_seen');
-            formData.append('notification_id', serverId);
-
             fetch(this.options.markSeenUrl, {
                 method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    notification_id: serverId
+                })
             })
             .then(response => {
                 if (!response.ok) console.error('Failed to mark notification as seen on server.');
@@ -231,13 +233,16 @@
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('popup_action', 'get');
-
             fetch(this.options.fetchUrl, {
                 method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    popup_action: 'get'
+                })
             })
             .then(response => {
                 const contentType = response.headers.get('content-type');
