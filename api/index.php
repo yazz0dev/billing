@@ -29,6 +29,9 @@ use Bramus\Router\Router;
 // For safety, let's re-require appConfig if it's used directly in this file for error handling.
 $appConfig = require PROJECT_ROOT . '/config/app.php';
 
+// Include the original public/index.php file
+// or copy its contents here
+require __DIR__ . '/../public/index.php';
 
 // Create Router instance
 $router = new Router();
