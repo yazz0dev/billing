@@ -80,11 +80,11 @@ $router->addRoute('GET', '/api/scanner/items', ['handler' => [App\Staff\MobileSc
 // Dispatch
 try {
     $router->dispatch($requestMethod, $requestUri);
-} catch (App\Core\Exception\RouteNotFoundException $e) {
+} catch (Core\Exception\RouteNotFoundException $e) {
     http_response_code(404);
     $view = new App\Core\View(PROJECT_ROOT . '/templates');
     echo $view->render('error/404.php', ['pageTitle' => '404 - Not Found', 'message' => $e->getMessage()], 'layouts/minimal.php');
-} catch (App\Core\Exception\AccessDeniedException $e) {
+} catch (Core\Exception\AccessDeniedException $e) {
     http_response_code(403);
     // If AJAX request, return JSON error, else render 403 page or redirect
     if (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest' || str_contains(strtolower($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json')) {

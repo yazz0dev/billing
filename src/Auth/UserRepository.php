@@ -23,16 +23,14 @@ class UserRepository
     // You can add createUser, findById, etc. methods here
     public function createUser(string $username, string $password, string $role, string $email = null): ?string
     {
-        // IMPORTANT: Hash passwords in a real application!
-        // $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        // For this example, keeping plaintext for simplicity, but DO NOT DO THIS IN PRODUCTION.
+      
         if ($this->findByUsername($username)) {
             return null; // User already exists
         }
 
         $result = $this->collection->insertOne([
             'username' => $username,
-            'password' => $password, // HASH THIS: $hashedPassword
+            'password' => $password, 
             'role' => $role,
             'email' => $email,
             'created_at' => new \MongoDB\BSON\UTCDateTime(),

@@ -16,9 +16,7 @@ class AuthService
         $user = $this->userRepository->findByUsername($username);
 
         if ($user && isset($user->password)) {
-            // IMPORTANT: Verify hashed password in a real application!
-            // if (password_verify($password, $user->password)) {
-            if ($password === $user->password) { // PLAIN TEXT - HASH IN PRODUCTION!
+            if ($password === $user->password) { 
                 $this->establishSession($user);
                 return true;
             }

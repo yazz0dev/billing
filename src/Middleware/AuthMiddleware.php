@@ -3,7 +3,7 @@
 namespace App\Middleware;
 
 use App\Core\Request;
-use App\Core\Exception\AccessDeniedException;
+use Core\Exception\AccessDeniedException;
 
 class AuthMiddleware
 {

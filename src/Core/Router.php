@@ -2,8 +2,8 @@
 
 namespace App\Core;
 
-use App\Core\Exception\RouteNotFoundException;
-use App\Core\Exception\AccessDeniedException; // Custom exception
+use Core\Exception\RouteNotFoundException;
+use Core\Exception\AccessDeniedException; // Custom exception
 
 class Router
 {
@@ -94,8 +94,3 @@ class Router
         $controller->$method(...$methodArgs);
     }
 }
-
-// Define custom exceptions
-namespace App\Core\Exception;
-class RouteNotFoundException extends \Exception {}
-class AccessDeniedException extends \Exception {}
