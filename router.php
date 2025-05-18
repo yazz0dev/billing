@@ -35,14 +35,15 @@ $base_path = '/billing'; // This should match the path used in Vercel routes and
 
 
 // Non-blocking MongoDB connection check (log only)
+// Removed call to undefined function logMongoDBConnectionStatus()
 set_time_limit(5); 
-@logMongoDBConnectionStatus();
+// @logMongoDBConnectionStatus(); // Removed
 set_time_limit(30); // Reset to default
 
 
 // --- Routing Logic ---
 $request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-route_log("Request URI: {$request_uri}");
+// route_log("Request URI: {$request_uri}"); // Removed
 
 // Remove the base path prefix if the app is not at the domain root
 // For Vercel, if routes are defined like "/billing/(.*)" -> "api/index.php",
@@ -74,12 +75,12 @@ if (substr($relative_path, 0, 1) !== '/') {
 // So, we check $relative_path for these.
 
 if ($relative_path === '/server.php' || strpos($relative_path, '/server.php?') === 0) {
-    route_log("Routing to internal server.php logic");
+    // route_log("Routing to internal server.php logic"); // Removed
     require_once __DIR__ . '/server.php';
     exit;
 }
 if ($relative_path === '/notification.php' || strpos($relative_path, '/notification.php?') === 0) {
-    route_log("Routing to internal notification.php logic");
+    // route_log("Routing to internal notification.php logic"); // Removed
     require_once __DIR__ . '/notification.php';
     exit;
 }
@@ -105,7 +106,7 @@ $page_routes = [
 
 if (isset($page_routes[$relative_path])) {
     list($file_to_include, $pageTitle, $required_role, $use_layout) = $page_routes[$relative_path];
-    route_log("Matched page route: {$relative_path} -> {$file_to_include}");
+    // route_log("Matched page route: {$relative_path} -> {$file_to_include}"); // Removed
 
     if ($required_role !== null) {
         $user_role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : null;
@@ -119,7 +120,7 @@ if (isset($page_routes[$relative_path])) {
         }
 
         if (!$is_allowed) {
-            route_log("Access denied for role '{$user_role}' to {$relative_path}. Required: " . (is_array($required_role) ? implode('/', $required_role) : $required_role));
+            // route_log("Access denied for role '{$user_role}' to {$relative_path}. Required: " . (is_array($required_role) ? implode('/', $required_role) : $required_role)); // Removed
             $_SESSION['login_redirect_message'] = "You do not have permission to access this page.";
             // Redirect to login, ensuring $base_path is prefixed
             header('Location: ' . $base_path . '/login'); 
@@ -137,13 +138,15 @@ if (isset($page_routes[$relative_path])) {
                 if (file_exists(__DIR__ . '/includes/header.php')) {
                     include __DIR__ . '/includes/header.php';
                 } else {
-                    route_log("Layout Error: header.php not found."); echo "Error: Header missing.";
+                    // route_log("Layout Error: header.php not found."); // Removed
+                    echo "Error: Header missing.";
                 }
                 echo $page_content; 
                 if (file_exists(__DIR__ . '/includes/footer.php')) {
                     include __DIR__ . '/includes/footer.php';
                 } else {
-                    route_log("Layout Error: footer.php not found."); echo "Error: Footer missing.";
+                    // route_log("Layout Error: footer.php not found."); // Removed
+                    echo "Error: Footer missing.";
                 }
             } else {
                 include $file_to_include;
@@ -151,14 +154,14 @@ if (isset($page_routes[$relative_path])) {
         }
         exit;
     } else {
-        route_log("File not found for route {$relative_path}: {$file_to_include}");
+        // route_log("File not found for route {$relative_path}: {$file_to_include}"); // Removed
     }
 }
 
 
 // --- 404 Not Found ---
 // This part is reached if no routes above matched for $relative_path
-route_log("404 Not Found for relative path (within app context): {$relative_path}. Original request URI: {$request_uri}");
+// route_log("404 Not Found for relative path (within app context): {$relative_path}. Original request URI: {$request_uri}"); // Removed
 header("HTTP/1.0 404 Not Found");
 $pageTitle = "404 Not Found"; 
 
