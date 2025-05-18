@@ -35,5 +35,10 @@
     "APP_ENV": "production",
     "MONGODB_URI": "mongodb+srv://yaseen:3GWpYAbQuZP06S6N@billcluster.rhevn0n.mongodb.net/?retryWrites=true&w=majority&appName=BillCluster",
     "APP_BASE_PATH": "/billing"
+  },
+  "git": {
+    "deploymentEnabled": {
+      "dev": false
+    }
   }
 }
