@@ -23,9 +23,30 @@ class NotificationController // Does not extend Controller as it's pure API
             $response->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
             return;
         }
+
+        // Accept both JSON and form-data for popup_action
+        $popupAction = $request->json('popup_action', $request->post('popup_action'));
+        if ($popupAction !== null && $popupAction !== 'get') {
+            $response->json(['status' => 'error', 'message' => 'Invalid popup_action.'], 400);
+            return;
+        }
+
         $currentUser = $this->authService->user();
-        $notifications = $this->notificationService->getNotificationsForUser($currentUser['id'], $currentUser['role']);
-        $response->json(['status' => 'success', 'data' => $notifications]);
+
+        try {
+            $notifications = $this->notificationService->getNotificationsForUser($currentUser['id'], $currentUser['role']);
+            $response->json(['status' => 'success', 'data' => $notifications]);
+        } catch (\MongoDB\Driver\Exception\Exception $e) {
+            $response->json([
+                'status' => 'error',
+                'message' => 'Notification database error: ' . $e->getMessage()
+            ], 500);
+        } catch (\Throwable $e) {
+            $response->json([
+                'status' => 'error',
+                'message' => 'Notification server error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function apiMarkSeen(Request $request, Response $response)
