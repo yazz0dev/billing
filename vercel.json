@@ -5,11 +5,11 @@
     }
   },
   "routes": [
+    // 1. Static files first:
+    // These rules map requests that your HTML/JS make (e.g., for /billing/global.css)
+    // to the actual files in your project structure (e.g., /global.css at the project root).
     {
-     "src": "/(.*)",  "dest": "/api/index.php" 
-     },
-    {
-      "src": "/billing/global\\.css",
+      "src": "/billing/global.css",
       "dest": "/global.css"
     },
     {
@@ -17,17 +17,32 @@
       "dest": "/js/$1"
     },
     {
-      "src": "/billing/favicon\\.ico",
-      "dest": "/favicon.ico"
+      "src": "/billing/favicon.ico",
+      "dest": "/favicon.ico" 
     },
+    // Add any other static asset routes here if needed (e.g., images)
+    // Example: 
+    // {
+    //   "src": "/billing/images/(.*)",
+    //   "dest": "/images/$1"
+    // },
+
+    // 2. PHP application routes:
+    // All other requests starting with /billing/ (or just /billing) are sent to your PHP router.
+    // Your PHP router (router.php via api/index.php) will then handle these.
     {
-      "src": "/billing/(.*)",
+      "src": "/billing/(.*)", // Matches /billing/login, /billing/admin/index.php, etc.
       "dest": "/api/index.php"
     },
     {
-      "src": "/billing",
+      "src": "/billing", // Matches a request to exactly /billing
       "dest": "/api/index.php"
     }
+    // Note: If you also want your application to be accessible from the domain root (e.g., your-app.vercel.app/),
+    // and have it serve the content of /billing/index.php, you would add:
+    // { "src": "/", "dest": "/api/index.php" }
+    // Your router.php is already configured to serve the project's root index.php for the '/index' route,
+    // which is what requests to '/billing' (or potentially '/') would resolve to.
   ],
   "env": {
     "APP_ENV": "production",
