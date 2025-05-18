@@ -1,11 +1,10 @@
 <?php
 declare(strict_types=1);
 
-// Bootstrap code (PROJECT_ROOT, autoloader, .env, config, error reporting, session, BASE_PATH, DB connect)
-// is GONE from here. It's now handled by public/index.php.
-// This script assumes public/index.php has already run and set up the environment.
+// Define PROJECT_ROOT directly to avoid dependency on public/index.php
+define('PROJECT_ROOT', dirname(__DIR__));
 
-// --- Import necessary classes ---
+// Import necessary classes
 use App\Auth\AuthController;
 use App\Admin\AdminController;
 use App\Product\ProductController;
@@ -16,22 +15,24 @@ use App\Notification\NotificationController;
 use App\Core\View;
 use App\Core\Response as CoreResponse;
 use App\Core\Request as CoreRequest;
-// Database class is used by controllers, but connect() is called in public/index.php
-// use App\Core\Database; 
-use App\Middleware\AuthMiddleware; // Assuming this is your middleware class
+use App\Middleware\AuthMiddleware;
 
 // Bramus Router
 use Bramus\Router\Router;
 
-// The initial Database::connect() call and its specific error handling block have been moved to public/index.php.
-// $appConfig should be available globally if public/index.php included it after loading.
-// If not, it might need to be passed or re-fetched, but typically config is loaded once.
-// For safety, let's re-require appConfig if it's used directly in this file for error handling.
+// Load application configuration
 $appConfig = require PROJECT_ROOT . '/config/app.php';
 
-// Include the original public/index.php file
-// or copy its contents here
-require __DIR__ . '/../public/index.php';
+// Rest of the bootstrapping code that was in public/index.php:
+// - Include composer autoloader
+// - Load environment variables
+// - Set error display based on environment
+// - Initialize session
+// - Define BASE_PATH
+// - Connect to database
+// These should be included here or in a shared bootstrap file
+
+// Do NOT include public/index.php here as it would cause recursion
 
 // Create Router instance
 $router = new Router();
