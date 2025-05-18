@@ -1,5 +1,7 @@
 <?php // templates/staff/bill_view.php
 // $pageTitle, $bills, $productsLookup (array mapping product_id to name) are available
+// $e is available
+// $session is available from the layout
 ?>
 
 <h1 class="page-title"><?php echo $e($pageTitle); ?></h1>
@@ -13,8 +15,28 @@
             <?php foreach ($bills as $bill):
                 // Ensure bill structure is consistent. $bill is now an array.
                 $billId = isset($bill['_id']['$oid']) ? $bill['_id']['$oid'] : (string)($bill['_id'] ?? 'N/A');
-                $billDate = isset($bill['created_at']['$date']) ? $bill['created_at']['$date'] : ($bill['created_at'] ?? null);
-                $formattedDate = $billDate ? (new DateTime($billDate['$numberLong'] ? '@'.($billDate['$numberLong']/1000) : $billDate))->format('Y-m-d') : 'N/A';
+                $billDateObj = $bill['created_at'] ?? null; // Should be MongoDB\BSON\UTCDateTime
+                $formattedDate = 'N/A';
+                if ($billDateObj instanceof MongoDB\BSON\UTCDateTime) {
+                     try {
+                        $formattedDate = $billDateObj->toDateTime()->format('Y-m-d H:i:s'); // Format as needed
+                     } catch (\Exception $e) {
+                        // Date conversion failed
+                        $formattedDate = 'Invalid Date';
+                     }
+                } elseif (is_string($billDateObj)) {
+                     // Fallback if it's somehow a string date (less common for MongoDB)
+                     try {
+                        $formattedDate = (new DateTime($billDateObj))->format('Y-m-d H:i:s');
+                     } catch (\Exception $e) {
+                        $formattedDate = 'Invalid Date';
+                     }
+                } else {
+                    // Handle other potential formats or missing date
+                    $formattedDate = 'N/A';
+                }
+
+
                 $totalAmount = $bill['total_amount'] ?? 0;
             ?>
             <div class="card-base bill-card-item" data-bill-id="<?php echo $e($billId); ?>">
@@ -48,10 +70,12 @@
     </div>
 </div>
 
-<?php $pageScripts = ['/js/staff-bill-view.js']; ?>
+<?php
+// Pass initial data to JS if needed (alternative to JS fetching)
+// The JS will fetch /api/bills anyway, so no need to pass data via PHP variables here.
+// Just include the necessary JS file.
 
-<script>
-// This will now be in public/js/staff-bill-view.js
-// PHP provides initial $bills and $productsLookup data to the JS via global variables or data attributes.
-// Or, the JS can fetch /api/bills on load.
-</script>
+$pageScripts = [
+    '/js/staff-bill-view.js',
+];
+?>

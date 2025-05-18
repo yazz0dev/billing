@@ -2,22 +2,10 @@
 
 declare(strict_types=1);
 
-if (!defined('PROJECT_ROOT')) {
-    define('PROJECT_ROOT', dirname(__DIR__));
-}
+// PROJECT_ROOT and BASE_PATH are now defined in the including script (./index.php)
+// Environment variables, app config ($appConfig), and session are also handled there.
 
-require PROJECT_ROOT . '/vendor/autoload.php';
-
-// Define the base path if not already defined in the main index.php
-if (!defined('BASE_PATH')) {
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $baseDir = dirname($scriptName);
-    if ($baseDir === '/' || $baseDir === '\\') {
-        $baseDir = '';
-    }
-    define('BASE_PATH', $baseDir);
-}
-
+// Use classes from the App namespace - Keep these uses
 use App\Auth\AuthController;
 use App\Admin\AdminController;
 use App\Product\ProductController;
@@ -27,48 +15,38 @@ use App\Billing\BillController;
 use App\Notification\NotificationController;
 use App\Core\Router;
 use App\Core\View;
-use App\Core\Response as CoreResponse; // Alias to avoid conflict if Response is used locally
-use App\Core\Exception\RouteNotFoundException; // Changed namespace
-use App\Core\Exception\AccessDeniedException; // Changed namespace
+use App\Core\Response as CoreResponse;
+use App\Core\Exception\RouteNotFoundException;
+use App\Core\Exception\AccessDeniedException;
 
-if (file_exists(PROJECT_ROOT . '/.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable(PROJECT_ROOT);
-    $dotenv->safeLoad(); // Use safeLoad to not error if .env is missing (e.g. in Vercel prod)
-}
-
-$appConfig = require PROJECT_ROOT . '/config/app.php';
-
-if ($appConfig['env'] === 'development' || $appConfig['debug']) {
-    ini_set('display_errors', '1'); error_reporting(E_ALL);
-} else {
-    ini_set('display_errors', '0'); error_reporting(0);
-    // Setup production error logging here (e.g., Monolog to a file or service)
-}
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_name($appConfig['session_name'] ?? 'APP_SESSION');
-    session_start([
-        'cookie_httponly' => true,
-        'cookie_secure' => $appConfig['env'] === 'production',
-        'cookie_samesite' => 'Lax',
-    ]);
-}
-
-// Get the request URI and remove the base path if needed
+// Get the request URI and method from $_SERVER - Keep this
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 $requestUri = $_SERVER['REQUEST_URI'];
 
-// Remove base path from request URI if it exists
+// Remove base path from request URI if it exists - Keep this, BASE_PATH is defined externally
 if (!empty(BASE_PATH) && strpos($requestUri, BASE_PATH) === 0) {
     $requestUri = substr($requestUri, strlen(BASE_PATH));
 }
+// If the result is empty, set it to root path '/'
+if ($requestUri === '' || $requestUri === '/') {
+    $requestUri = '/';
+} else {
+    // Ensure it starts with a slash if it doesn't (e.g. after removing BASE_PATH)
+    if (strpos($requestUri, '/') !== 0) {
+         $requestUri = '/' . $requestUri;
+    }
+}
 
-$router = new Router();
 
-// --- Define Routes ---
+$router = new Router(); // Router constructor correctly uses BASE_PATH if defined
+
+// --- Define Routes --- (Keep all route definitions as they are correct)
+// ... (Your existing route definitions here) ...
 // Public pages
 $router->addRoute('GET', '/',           [AuthController::class, 'showHomePage']);
-$router->addRoute('GET', '/billing',    [AuthController::class, 'showHomePage']); // Add explicit route for /billing
+// The /billing route should also show the home page if not logged in,
+// and will redirect if logged in, same as '/'.
+$router->addRoute('GET', '/billing',    [AuthController::class, 'showHomePage']);
 $router->addRoute('GET', '/login',      [AuthController::class, 'showLoginForm']);
 $router->addRoute('POST', '/login',     [AuthController::class, 'handleLogin']);
 $router->addRoute('GET', '/logout',     [AuthController::class, 'logout']);
@@ -109,34 +87,45 @@ $router->addRoute('POST', '/api/scanner/submit-scan', ['handler' => [MobileScann
 $router->addRoute('GET', '/api/scanner/items', ['handler' => [MobileScannerController::class, 'apiGetScannedItemsForDesktop'], 'middleware' => 'auth:staff,admin']);
 
 
-// Dispatch
+// Dispatch - Keep this try/catch block here for centralized handling
 try {
     $router->dispatch($requestMethod, $requestUri);
 } catch (RouteNotFoundException $e) {
     http_response_code(404);
+    // Access $appConfig defined in index.php
     $view = new View(PROJECT_ROOT . '/templates');
-    echo $view->render('error/404.php', ['pageTitle' => '404 - Not Found', 'message' => $e->getMessage()], 'layouts/minimal.php');
+    echo $view->render('error/404.php', ['pageTitle' => '404 - Not Found', 'message' => $e->getMessage(), 'appConfig' => $appConfig], 'layouts/minimal.php');
+    exit; // Ensure script stops
 } catch (AccessDeniedException $e) {
     http_response_code(403);
     // If AJAX request, return JSON error, else render 403 page or redirect
     if (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest' || str_contains(strtolower($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json')) {
         (new CoreResponse())->json(['success' => false, 'message' => $e->getMessage() ?: 'Access Denied.'], 403);
     } else {
-        $_SESSION['error_message'] = $e->getMessage() ?: 'You do not have permission to access this page.';
+        // Store initial message in session to be picked up by minimal layout JS
+        $_SESSION['initial_page_message'] = ['type' => 'error', 'text' => $e->getMessage() ?: 'You do not have permission to access this page.'];
+
         // Check if user is logged in at all
         if (!isset($_SESSION['user_id'])) {
-            $_SESSION['redirect_after_login'] = $requestUri; // Store intended URL
+            // Store intended URL only if they were trying to access something restricted while logged out
+             if (!str_contains($requestUri, '/login') && !str_contains($requestUri, '/logout') && $requestUri !== '/') {
+                 $_SESSION['redirect_after_login'] = $requestUri; // Store intended URL
+             }
             (new CoreResponse())->redirect('/login');
         } else {
             // User is logged in but lacks role, show a 403 page
             $view = new View(PROJECT_ROOT . '/templates');
-            echo $view->render('error/403.php', ['pageTitle' => '403 - Access Denied', 'message' => $e->getMessage()], 'layouts/minimal.php');
+            // Access $appConfig and $_SESSION defined in index.php
+            echo $view->render('error/403.php', ['pageTitle' => '403 - Access Denied', 'message' => $e->getMessage(), 'appConfig' => $appConfig, 'session' => $_SESSION], 'layouts/minimal.php');
         }
     }
+     exit; // Ensure script stops after rendering or redirecting
 } catch (\Throwable $e) { // Catch all other throwables
     error_log("Unhandled Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString());
     http_response_code(500);
     $view = new View(PROJECT_ROOT . '/templates');
-    $errorMessage = $appConfig['debug'] ? nl2br(htmlspecialchars($e->getMessage() . "\n\nTrace:\n" . $e->getTraceAsString())) : 'An unexpected server error occurred.';
-    echo $view->render('error/500.php', ['pageTitle' => '500 - Server Error', 'message' => $errorMessage], 'layouts/minimal.php');
+     // Access $appConfig defined in index.php
+    $errorMessage = ($appConfig['debug'] ?? false) ? nl2br(htmlspecialchars($e->getMessage() . "\n\nTrace:\n" . $e->getTraceAsString())) : 'An unexpected server error occurred.';
+    echo $view->render('error/500.php', ['pageTitle' => '500 - Server Error', 'message' => $errorMessage, 'appConfig' => $appConfig], 'layouts/minimal.php');
+     exit; // Ensure script stops
 }
