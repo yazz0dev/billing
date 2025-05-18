@@ -42,6 +42,7 @@
             return;
         }
 
+        // Use circuit breaker pattern from popup-notification if available
         const circuitBreaker = window.popupNotification?.options?.circuitBreaker || {
             canRequest: () => true, recordFailure: () => {}
         };

@@ -17,7 +17,8 @@
             if (typeof PopupNotification === 'function') {
                 window.popupNotification = new PopupNotification({
                     fetchUrl: '/api/notifications/fetch', // Corrected API endpoint
-                    markSeenUrl: '/api/notifications/mark-seen' // Corrected API endpoint
+                    markSeenUrl: '/api/notifications/mark-seen', // Corrected API endpoint
+                    fetchFromServer: false // Disable auto-fetching on login page to prevent errors
                     // dbCheckUrl could be an API endpoint if needed, e.g., /api/system/db-check
                 });
             }

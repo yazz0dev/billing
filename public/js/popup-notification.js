@@ -29,6 +29,38 @@
                 // dbCheckUrl: options.dbCheckUrl || '/billing/db-check.php', // Commented out
             };
 
+            // Add circuit breaker to prevent constant retries
+            this.options.circuitBreaker = {
+                failureThreshold: 3,
+                resetTimeout: 30000,
+                failureCount: 0,
+                lastFailureTime: 0,
+                isOpen: false,
+                canRequest: function() {
+                    if (!this.isOpen) return true;
+                    
+                    const now = Date.now();
+                    if (now - this.lastFailureTime > this.resetTimeout) {
+                        // Circuit half-open, allow a test request
+                        this.isOpen = false;
+                        return true;
+                    }
+                    return false;
+                },
+                recordFailure: function() {
+                    this.failureCount++;
+                    this.lastFailureTime = Date.now();
+                    
+                    if (this.failureCount >= this.failureThreshold) {
+                        this.isOpen = true;
+                    }
+                },
+                reset: function() {
+                    this.failureCount = 0;
+                    this.isOpen = false;
+                }
+            };
+
             this.container = null;
             this.notifications = []; // Stores { id, element, serverId }
             this.initialized = false;
@@ -193,6 +225,12 @@
         }
 
         fetchFromServer() {
+            // Use circuit breaker to prevent constant retries
+            if (!this.options.circuitBreaker.canRequest()) {
+                console.log("Circuit breaker open - skipping notification fetch");
+                return;
+            }
+
             const formData = new FormData();
             formData.append('popup_action', 'get');
 
@@ -218,6 +256,8 @@
                 return response.json();
             })
             .then(result => {
+                // Reset circuit breaker on successful response
+                this.options.circuitBreaker.reset();
                 this.fetchRetryCount = 0; 
                 this.fetchBackoffTime = 2000;
 
@@ -242,6 +282,8 @@
             })
             .catch(err => {
                 console.error('Error fetching notifications:', err.message);
+                // Record failure in circuit breaker
+                this.options.circuitBreaker.recordFailure();
                 this.fetchRetryCount++;
                 
                 if (err.message.includes('MongoDB driver missing') || err.message.includes('Expected JSON response')) {
@@ -249,51 +291,22 @@
                         if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
                         this.fetchIntervalId = null; 
                         
-                        // Commenting out the call to checkDatabaseConnectionAndResume
-                        // setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 5);
+                        // Only show error once instead of constantly retrying
                         this.show({
                            type: 'warning',
                            title: 'System Alert',
-                           message: 'Notification service is having trouble. Retries exhausted for now.', // Updated message
+                           message: 'Notification service is temporarily unavailable.',
                            duration: 10000
                         });
                     } else {
                         this.fetchBackoffTime = Math.min(this.fetchBackoffTime * 1.5, 60000); 
                         if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
-                        // Re-scheduling fetchFromServer directly instead of relying on dbCheckUrl logic
+                        // Use exponential backoff for retries
                         this.fetchIntervalId = setInterval(() => this.fetchFromServer(), this.fetchBackoffTime);
                     }
                 }
             });
         }
-        
-        /* // Commenting out the entire checkDatabaseConnectionAndResume method
-        checkDatabaseConnectionAndResume() {
-            const formData = new FormData();
-            formData.append('action', 'check_connection'); 
-
-            fetch(this.options.dbCheckUrl, { 
-                method: 'POST', 
-                body: formData, 
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.status === 'connected') {
-                    this.fetchRetryCount = 0;
-                    this.fetchBackoffTime = 2000;
-                    if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
-                    this.fetchIntervalId = setInterval(() => this.fetchFromServer(), this.options.fetchInterval);
-                    this.fetchFromServer(); 
-                } else {
-                    setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 2); 
-                }
-            })
-            .catch(() => {
-                setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 2);
-            });
-        }
-        */
 
         getDefaultTitle(type) {
             const titles = { success: 'Success!', error: 'Error!', warning: 'Warning!', info: 'Information' };
@@ -304,7 +317,7 @@
             const icons = {
                 success: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--success, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
                 error: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--error, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>`,
-                // Fixed warning icon viewBox typo:
+                // Fix the warning icon viewBox
                 warning: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--warning, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`,
                 info: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--info, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>`
             };

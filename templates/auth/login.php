@@ -40,8 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Example: if there was an error message passed from PHP that needs to be shown as a popup
     const errorMessageDiv = document.querySelector('.login-error-message');
     if (errorMessageDiv && errorMessageDiv.textContent.trim() !== '' && window.popupNotification) {
+        // Don't show popup on login page, the error div is already visible
         // window.popupNotification.error(errorMessageDiv.textContent.trim(), "Login Error");
-        // The error is already displayed in the div, popup might be redundant unless you remove the div
     }
 });
 </script>

@@ -27,7 +27,9 @@
             if (typeof PopupNotification === 'function') {
                 window.popupNotification = new PopupNotification({
                     fetchUrl: '/api/notifications/fetch',
-                    markSeenUrl: '/api/notifications/mark-seen'
+                    markSeenUrl: '/api/notifications/mark-seen',
+                    fetchFromServer: true,
+                    fetchInterval: 60000 // Increase interval to reduce server load
                 });
             }
              // Global user session data for JS if needed by topbar or other scripts
