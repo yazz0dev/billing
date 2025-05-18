@@ -98,4 +98,4 @@ class Router
 // Define custom exceptions
 namespace App\Core\Exception;
 class RouteNotFoundException extends \Exception {}
-class AccessDeniedException extends \Exception {}999o
+class AccessDeniedException extends \Exception {}

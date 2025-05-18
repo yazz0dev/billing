@@ -10,11 +10,17 @@ if (php_sapi_name() !== 'cli') {
     echo "<pre>";
 }
 
-echo "MongoDB Connection Debug Script\n";
-echo "===============================\n\n";
+echo "MongoDB Connection Debug Script (Using App Core)\n";
+echo "=================================================\n\n";
+
+// Define PROJECT_ROOT if not already defined (e.g., if not running through web server context)
+if (!defined('PROJECT_ROOT')) {
+    define('PROJECT_ROOT', __DIR__); // Assuming debug.php is in the project root
+}
+echo "INFO: PROJECT_ROOT set to: " . PROJECT_ROOT . "\n";
 
 // Ensure vendor autoload is loaded
-$autoloaderPath = __DIR__ . '/vendor/autoload.php';
+$autoloaderPath = PROJECT_ROOT . '/vendor/autoload.php';
 if (file_exists($autoloaderPath)) {
     require_once $autoloaderPath;
     echo "SUCCESS: Autoloader loaded successfully from: " . $autoloaderPath . "\n";
@@ -25,155 +31,137 @@ if (file_exists($autoloaderPath)) {
     exit;
 }
 
-// Include configuration file (which defines MONGODB_URI_CONFIG)
-$configPath = __DIR__ . '/config.php';
-if (file_exists($configPath)) {
-    require_once $configPath;
-    echo "SUCCESS: Config.php loaded successfully from: " . $configPath . "\n";
-    if (defined('MONGODB_URI_CONFIG')) {
-        echo "INFO: MONGODB_URI_CONFIG (from config.php for local fallback) is defined: " . MONGODB_URI_CONFIG . "\n";
-    } else {
-        echo "WARNING: MONGODB_URI_CONFIG is NOT defined in config.php.\n";
+// Load .env file (mimicking api/index.php)
+if (file_exists(PROJECT_ROOT . '/.env')) {
+    try {
+        $dotenv = Dotenv\Dotenv::createImmutable(PROJECT_ROOT);
+        $dotenv->safeLoad(); // Use safeLoad to not error if .env is missing
+        echo "INFO: .env file loaded if present.\n";
+    } catch (Exception $e) {
+        echo "WARNING: Could not load .env file: " . $e->getMessage() . "\n";
     }
 } else {
-    echo "ERROR: config.php not found at " . $configPath . ".\n";
-    echo "Please ensure it exists and can define MONGODB_URI_CONFIG for local testing.\n";
+    echo "INFO: .env file not found at " . PROJECT_ROOT . "/.env. This is normal for some environments.\n";
+}
+
+// Load application configuration (mimicking api/index.php)
+$appConfigPath = PROJECT_ROOT . '/config/app.php';
+$dbConfigPath = PROJECT_ROOT . '/config/database.php';
+
+if (!file_exists($appConfigPath) || !file_exists($dbConfigPath)) {
+    echo "ERROR: Application or Database configuration file not found.\n";
+    echo "Ensure config/app.php and config/database.php exist.\n";
     if (php_sapi_name() !== 'cli') echo "</pre>";
-    // We don't exit here if config.php is missing, as getenv('MONGODB_URI') might still work.
+    exit;
 }
 
-// Determine the MongoDB URI
-$uri_from_env = getenv('MONGODB_URI');
-$uri_from_config = defined('MONGODB_URI_CONFIG') ? MONGODB_URI_CONFIG : null;
-$uri_default_fallback = 'mongodb://localhost:27017';
+$appConfig = require $appConfigPath;
+$dbConfig = require $dbConfigPath;
 
-$actual_uri_used = null;
-$uri_source = "unknown";
+echo "INFO: Application Name: " . ($appConfig['name'] ?? 'N/A') . "\n";
+echo "INFO: Environment: " . ($appConfig['env'] ?? 'N/A') . "\n";
+echo "INFO: Debug Mode: " . (isset($appConfig['debug']) ? ($appConfig['debug'] ? 'true' : 'false') : 'N/A') . "\n";
 
-if ($uri_from_env) {
-    $actual_uri_used = $uri_from_env;
-    $uri_source = "Environment Variable (MONGODB_URI from Vercel/OS)";
-} elseif ($uri_from_config) {
-    $actual_uri_used = $uri_from_config;
-    $uri_source = "Config File (MONGODB_URI_CONFIG)";
-} else {
-    $actual_uri_used = $uri_default_fallback;
-    $uri_source = "Default Fallback (mongodb://localhost:27017)";
-}
+$actual_uri_used = $dbConfig['mongodb']['uri'] ?? 'URI not configured in database.php';
+$database_name = $dbConfig['mongodb']['database_name'] ?? 'DB Name not configured';
 
-echo "\nINFO: Determined MongoDB URI to use:\n";
-echo "  Source: " . $uri_source . "\n";
-echo "  URI: " . $actual_uri_used . "\n\n";
+echo "\nINFO: MongoDB URI from config/database.php:\n";
+echo "  URI: " . $actual_uri_used . "\n";
+echo "  Database Name: " . $database_name . "\n\n";
 
-
-// Import MongoDB classes
-use MongoDB\Client;
-use MongoDB\Driver\ServerApi;
-use MongoDB\Driver\Exception\Exception as MongoDBDriverException;
-use MongoDB\Driver\Exception\ConnectionTimeoutException;
-use MongoDB\Driver\Exception\AuthenticationException;
-use MongoDB\Driver\Exception\ServerSelectionTimeoutException;
-
-$mongoClient = null;
+echo "IMPORTANT: If connecting to MongoDB Atlas, ensure your server's current IP address (or 0.0.0.0/0 for Vercel) is whitelisted in the Atlas UI (Network Access settings).\n";
+echo "           Failure to do so is a common cause of connection timeouts and handshake errors.\n\n";
 
 try {
-    echo "INFO: Attempting to connect to MongoDB using the determined URI...\n\n";
+    echo "INFO: Attempting to connect to MongoDB using App\Core\Database::connect()...\n";
 
-    echo "IMPORTANT: If connecting to MongoDB Atlas, ensure your server's current IP address (or 0.0.0.0/0 for Vercel) is whitelisted in the Atlas UI (Network Access settings).\n";
-    echo "           Failure to do so is a common cause of connection timeouts and handshake errors.\n\n";
+    // Use the application's Database class to connect
+    $mongoDb = App\Core\Database::connect();
+    echo "SUCCESS: App\Core\Database::connect() successful.\n";
+    echo "INFO: Connected to database: " . $mongoDb->getDatabaseName() . "\n";
 
-    $uriOptions = []; // URI options, e.g., ['replicaSet' => 'myReplicaSet']
-    $driverOptions = [ // Driver options
-        'serverSelectionTimeoutMS' => 5000, // How long to try selecting a server (milliseconds)
-        'connectTimeoutMS' => 10000,       // How long to wait for a connection to be established (milliseconds)
-    ];
+    // Test connection by pinging the admin database via the client obtained from Database class
+    $client = App\Core\Database::getClient();
+    if ($client) {
+        echo "INFO: Pinging 'admin' database to verify connection...\n";
+        $commandResponse = $client->selectDatabase('admin')->command(['ping' => 1]);
+        $pingResult = iterator_to_array($commandResponse);
 
-    // For Atlas SRV URIs, enable retryWrites and ServerApi (mimicking server.php logic)
-    if (strpos($actual_uri_used, 'mongodb+srv://') === 0 || strpos($actual_uri_used, '.mongodb.net') !== false) {
-        echo "INFO: Atlas SRV URI detected. Applying specific options (retryWrites=true, ServerApi=V1).\n";
-        $uriOptions['retryWrites'] = true;
-        if (class_exists('MongoDB\\Driver\\ServerApi')) {
-            $driverOptions['serverApi'] = new ServerApi(ServerApi::V1);
-            echo "INFO: MongoDB ServerApi V1 configured.\n";
+        if (isset($pingResult[0]['ok']) && $pingResult[0]['ok'] == 1) {
+            echo "SUCCESS: MongoDB connection confirmed! Ping to 'admin' database was acknowledged.\n\n";
         } else {
-            echo "WARNING: MongoDB\Driver\ServerApi class not found. ServerApi will not be configured. This might be an issue for Atlas connections if your driver version is older and doesn't support it implicitly.\n";
+            echo "WARNING: Ping command executed but response was not as expected: " . json_encode($pingResult) . "\n\n";
+        }
+
+        // Optional: List collections in the connected database as a further test
+        echo "INFO: Listing collections in database '" . $mongoDb->getDatabaseName() . "' (requires appropriate permissions)...\n";
+        $collections = $mongoDb->listCollectionNames();
+        $collectionCount = 0;
+        foreach ($collections as $collection) {
+            echo "  - " . $collection . "\n";
+            $collectionCount++;
+        }
+        if ($collectionCount == 0) {
+            echo "INFO: No collections listed. This could be due to permissions or no collections present in '" . $mongoDb->getDatabaseName() . "'.\n";
         }
     } else {
-        echo "INFO: Non-Atlas URI detected. Standard options will be used.\n";
+        echo "ERROR: Could not retrieve MongoDB client from App\Core\Database::getClient().\n";
     }
 
-    echo "INFO: URI Options being used: " . json_encode($uriOptions) . "\n";
-    echo "INFO: Driver Options being used: " . json_encode(array_keys($driverOptions)) . " (ServerApi object not shown fully in json_encode)\n\n";
-    
-    // Create a new client instance
-    $mongoClient = new Client($actual_uri_used, $uriOptions, $driverOptions);
-    echo "INFO: MongoDB client instantiated.\n";
-
-    // Test connection by pinging the admin database
-    echo "INFO: Pinging 'admin' database to verify connection...\n";
-    $commandResponse = $mongoClient->selectDatabase('admin')->command(['ping' => 1]);
-    $pingResult = iterator_to_array($commandResponse); // Get the first document from the command response cursor
-
-    if (isset($pingResult[0]['ok']) && $pingResult[0]['ok'] == 1) {
-        echo "SUCCESS: MongoDB connection successful! Ping to 'admin' database was acknowledged.\n\n";
-    } else {
-        echo "WARNING: Ping command executed but response was not as expected: " . json_encode($pingResult) . "\n\n";
-    }
-
-    // Optional: List databases as a further test
-    echo "INFO: Listing databases (requires appropriate permissions)...\n";
-    $databases = $mongoClient->listDatabases();
-    $dbCount = 0;
-    foreach ($databases as $database) {
-        printf("  - %s (Size on disk: %.2f MB)\n", $database->getName(), $database->getSizeOnDisk() / (1024 * 1024));
-        $dbCount++;
-    }
-    if ($dbCount == 0) {
-        echo "INFO: No databases listed. This could be due to permissions or no databases present.\n";
-    }
-
-} catch (AuthenticationException $e) {
-    echo "ERROR: MongoDB Authentication Failed!\n";
+} catch (MongoDB\Driver\Exception\AuthenticationException $e) {
+    echo "ERROR: MongoDB Authentication Failed via App\Core\Database!\n";
     echo "Message: " . $e->getMessage() . "\n";
     echo "Common causes:\n";
-    echo "  - Incorrect username or password in the MongoDB URI.\n";
-    echo "  - User does not exist or has insufficient permissions for the 'authSource' database (usually 'admin' or the specific database).\n";
+    echo "  - Incorrect username or password in the MongoDB URI (check .env or config/database.php).\n";
+    echo "  - User does not exist or has insufficient permissions for the 'authSource' database.\n";
     echo "  - IP Access List in MongoDB Atlas might not include your server's IP address.\n";
-    echo "Trace: \n" . $e->getTraceAsString() . "\n";
-} catch (ConnectionTimeoutException $e) {
-    echo "ERROR: MongoDB Connection Timed Out!\n";
+    if ($appConfig['debug']) {
+        echo "Trace: \n" . $e->getTraceAsString() . "\n";
+    }
+} catch (MongoDB\Driver\Exception\ConnectionTimeoutException $e) {
+    echo "ERROR: MongoDB Connection Timed Out via App\Core\Database!\n";
     echo "Message: " . $e->getMessage() . "\n";
     echo "Common causes:\n";
     echo "  - MongoDB server is not reachable (down, network issue, incorrect host/port).\n";
     echo "  - Firewall blocking outgoing connections on port 27017 (or custom port).\n";
     echo "  - For Atlas, ensure your server's IP is whitelisted in Network Access settings.\n";
-    echo "  - 'connectTimeoutMS' (" . ($driverOptions['connectTimeoutMS'] ?? 'N/A') . "ms) might be too short for your network latency.\n";
-    echo "Trace: \n" . $e->getTraceAsString() . "\n";
-} catch (ServerSelectionTimeoutException $e) {
-    echo "ERROR: MongoDB Server Selection Timed Out!\n";
+    echo "  - 'connectTimeoutMS' or 'serverSelectionTimeoutMS' in config/database.php might be too short.\n";
+    if ($appConfig['debug']) {
+        echo "Trace: \n" . $e->getTraceAsString() . "\n";
+    }
+} catch (MongoDB\Driver\Exception\ServerSelectionTimeoutException $e) {
+    echo "ERROR: MongoDB Server Selection Timed Out via App\Core\Database!\n";
     echo "Message: " . $e->getMessage() . "\n";
     echo "Common causes:\n";
-    echo "  - No suitable server found in the replica set or sharded cluster (e.g., all members down or unreachable).\n";
+    echo "  - No suitable server found (e.g., all members down or unreachable).\n";
     echo "  - DNS resolution issues for SRV records (if using mongodb+srv:// URI).\n";
     echo "  - SSL/TLS handshake issues. Ensure your PHP has up-to-date CA certificates.\n";
     echo "     (Check `openssl.cafile` in php.ini or if your system's CA bundle is current).\n";
-    echo "  - 'serverSelectionTimeoutMS' (" . ($driverOptions['serverSelectionTimeoutMS'] ?? 'N/A') . "ms) might be too short.\n";
-    echo "Trace: \n" . $e->getTraceAsString() . "\n";
-} catch (MongoDBDriverException $e) {
-    echo "ERROR: MongoDB Driver Exception Occurred!\n";
+    echo "  - 'serverSelectionTimeoutMS' in config/database.php might be too short.\n";
+    if ($appConfig['debug']) {
+        echo "Trace: \n" . $e->getTraceAsString() . "\n";
+    }
+} catch (MongoDB\Driver\Exception\Exception $e) { // General MongoDB Driver Exception
+    echo "ERROR: MongoDB Driver Exception Occurred via App\Core\Database!\n";
     echo "Message: " . $e->getMessage() . "\n";
     echo "Type: " . get_class($e) . "\n";
-    if ($e->hasErrorLabel('HandshakeError')) {
+    if (method_exists($e, 'hasErrorLabel') && $e->hasErrorLabel('HandshakeError')) {
         echo "INFO: This error has the 'HandshakeError' label. This often relates to TLS/SSL issues.\n";
         echo "  - Check CA certificates (see ServerSelectionTimeoutException notes).\n";
         echo "  - Ensure your MongoDB server/Atlas cluster is configured for TLS if your client expects it (default for Atlas).\n";
     }
-    echo "Trace: \n" . $e->getTraceAsString() . "\n";
-} catch (Exception $e) {
-    echo "ERROR: A Generic Exception Occurred!\n";
+    if ($appConfig['debug']) {
+        echo "Trace: \n" . $e->getTraceAsString() . "\n";
+    }
+} catch (Exception $e) { // Catch exceptions from Database::connect() or other generic exceptions
+    echo "ERROR: An Exception Occurred!\n";
     echo "Message: " . $e->getMessage() . "\n";
     echo "Type: " . get_class($e) . "\n";
-    echo "Trace: \n" . $e->getTraceAsString() . "\n";
+    if ($appConfig['debug'] || strpos($e->getMessage(), "Database connection failed:") === 0) { // Show trace if debug or it's our custom db fail message
+        echo "Trace: \n" . $e->getTraceAsString() . "\n";
+    } else {
+        echo "Enable debug mode in config/app.php for more details.\n";
+    }
 } finally {
     echo "\nINFO: Debug script finished.\n";
     if (php_sapi_name() !== 'cli') {

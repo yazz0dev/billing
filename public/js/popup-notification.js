@@ -1,4 +1,4 @@
-//billing/js/popup-notification.js
+//billing/public/js/popup-notification.js
 
 // Use an IIFE to prevent global namespace pollution and avoid duplicate class declarations
 (function() {
