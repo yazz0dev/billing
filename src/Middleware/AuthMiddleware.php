@@ -3,7 +3,8 @@
 namespace App\Middleware;
 
 use App\Core\Request;
-use Core\Exception\AccessDeniedException;
+// Use your custom exception
+use App\Core\Exception\AccessDeniedException; // Correct namespace
 
 class AuthMiddleware
 {
@@ -14,7 +15,7 @@ class AuthMiddleware
      * @param string ...$roles Required roles. If empty, just checks for authentication.
      * @throws AccessDeniedException
      */
-    public function handle(Request $request, string ...$roles): void
+    public function handle(Request $request, string ...$roles): void // Roles are now variadic
     {
         if (!isset($_SESSION['user_id'])) {
             // User is not authenticated
@@ -23,16 +24,16 @@ class AuthMiddleware
 
         if (!empty($roles)) {
             // Roles are specified, check if the user has one of them
-            $userRole = $_SESSION['user_role'] ?? null;
+            $userRole = strtolower($_SESSION['user_role'] ?? '');
             $isAllowed = false;
             foreach ($roles as $requiredRole) {
-                if (strtolower($userRole) === strtolower(trim($requiredRole))) {
+                if ($userRole === strtolower(trim($requiredRole))) {
                     $isAllowed = true;
                     break;
                 }
             }
             if (!$isAllowed) {
-                throw new AccessDeniedException('You do not have permission to access this resource.');
+                throw new AccessDeniedException('You do not have permission to access this resource. Required role(s): ' . implode(', ', $roles));
             }
         }
         // If no roles specified, authentication check passed.

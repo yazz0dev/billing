@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Note: In a high-traffic POS, fetching product details for every add might be slow.
             // A more robust solution might involve websockets or an optimistic update with server-side reconciliation.
             // For now, this ensures stock accuracy.
-            const stockCheckResponse = await fetch(`/api/products/${productId}`);
+            const stockCheckResponse = await fetch(window.BASE_PATH + `/api/products/${productId}`);
             if (!stockCheckResponse.ok) throw new Error('Product not found on server for stock check.');
             const stockCheckResult = await stockCheckResponse.json();
             
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if(window.popupNotification) window.popupNotification.warning("Cart is empty."); return;
             }
             try {
-                const response = await fetch('/api/bills/generate', {
+                const response = await fetch(window.BASE_PATH + '/api/bills/generate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         activateScannerModeBtn.disabled = true;
         displayDesktopStatus("Activating mobile scanner mode...", 'info');
         try {
-            const response = await fetch('/api/scanner/activate-pos', {
+            const response = await fetch(window.BASE_PATH + '/api/scanner/activate-pos', {
                  method: 'POST',
                  headers: { ...(csrfToken && {'X-CSRF-TOKEN': csrfToken}) }
             });
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         displayDesktopStatus(statusMsg, 'info');
 
         try {
-            await fetch('/api/scanner/deactivate-pos', {
+            await fetch(window.BASE_PATH + '/api/scanner/deactivate-pos', {
                 method: 'POST',
                 headers: { ...(csrfToken && {'X-CSRF-TOKEN': csrfToken}) }
             });
@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 clearInterval(desktopPairingPollInterval); desktopPairingPollInterval = null; return;
             }
             try {
-                const response = await fetch(`/api/scanner/items`); // GET
+                const response = await fetch(window.BASE_PATH + `/api/scanner/items`); // GET
                 const result = await response.json();
                 if (result.success && result.items && result.items.length > 0) {
                     result.items.forEach(item => {
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function checkInitialDesktopScannerStatus() {
         if (!activateScannerModeBtn || !deactivateScannerModeBtn) return;
         try {
-            const response = await fetch('/api/scanner/check-pos-activation'); // GET
+            const response = await fetch(window.BASE_PATH + '/api/scanner/check-pos-activation'); // GET
             const data = await response.json();
             if (data.success && data.is_active) {
                 isDesktopScannerActive = true;

@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Option 2: Fetch data on load (simpler for this refactor)
         try {
             const [billsResponse, productsResponse] = await Promise.all([
-                fetch('/api/bills'),      // Assuming your BillController::apiGetBills exists
-                fetch('/api/products')  // Assuming your ProductController::apiGetProducts exists
+                fetch(window.BASE_PATH + '/api/bills'),      // Assuming your BillController::apiGetBills exists
+                fetch(window.BASE_PATH + '/api/products')  // Assuming your ProductController::apiGetProducts exists
             ]);
 
             if (!billsResponse.ok || !productsResponse.ok) {

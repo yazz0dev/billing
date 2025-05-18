@@ -57,7 +57,7 @@ class BillController
         }
     }
 
-    public function apiGetBillById(Request $request, Response $response, array $params)
+    public function apiGetBillById(Request $request, Response $response, string $billId)
     {
         // Auth check ideally via middleware in router, or explicitly here if needed
         // For simplicity, assuming middleware handles auth for routes calling this.
@@ -66,8 +66,6 @@ class BillController
         //     $response->json(['success' => false, 'message' => 'Unauthorized'], 401);
         //     return;
         // }
-
-        $billId = $params['id'] ?? null;
 
         if (!$billId) {
             $response->json(['success' => false, 'message' => 'Bill ID not provided.'], 400);

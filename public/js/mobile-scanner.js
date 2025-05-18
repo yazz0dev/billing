@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
         tryActivateScannerBtn.style.display = 'none';
         try {
             // UPDATED API ENDPOINT
-            const response = await fetch('/api/scanner/activate-mobile', { method: 'POST' });
+            const response = await fetch(window.BASE_PATH + '/api/scanner/activate-mobile', { method: 'POST' });
             const data = await response.json();
 
             if (data.success && data.session_activated) {
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
         formData.append('scanned_product_id', decodedText);
 
         // UPDATED API ENDPOINT
-        fetch('/api/scanner/submit-scan', { method: 'POST', body: formData })
+        fetch(window.BASE_PATH + '/api/scanner/submit-scan', { method: 'POST', body: formData })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {

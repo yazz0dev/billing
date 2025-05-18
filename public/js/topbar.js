@@ -54,7 +54,7 @@
         }
         notificationListEl.innerHTML = '<div class="loading-spinner">Loading notifications...</div>'; // Placeholder for loading state
 
-        fetch('/api/notifications/fetch', {
+        fetch(window.BASE_PATH + '/api/notifications/fetch', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 

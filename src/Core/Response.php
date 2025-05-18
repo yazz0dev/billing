@@ -14,11 +14,18 @@ class Response
 
     public function redirect(string $url, int $status = 302): void
     {
-        $appConfig = require PROJECT_ROOT . '/config/app.php';
+        $finalUrl = $url;
         if (strpos($url, '/') === 0 && strpos($url, '//') !== 0) { // Relative path from app root
-            $url = rtrim($appConfig['url'], '/') . $url;
+            $basePath = defined('BASE_PATH') ? rtrim(BASE_PATH, '/') : '';
+            $finalUrl = $basePath . $url;
         }
-        header("Location: $url", true, $status);
+        // Ensure it's an absolute URL for the Location header if using APP_URL
+        // $appConfig = require PROJECT_ROOT . '/config/app.php';
+        // if (strpos($finalUrl, 'http') !== 0) {
+        //    $finalUrl = rtrim($appConfig['url'], '/') . $finalUrl;
+        // }
+
+        header("Location: " . $finalUrl, true, $status);
         exit;
     }
 

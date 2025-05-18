@@ -1,25 +1,24 @@
-# .htaccess for public directory
-# This file enables clean URLs and routes requests to public/index.php
-# Requires mod_rewrite enabled in httpd.conf and AllowOverride All or FileInfo set for this directory.
-
+# ./public/.htaccess
 <IfModule mod_rewrite.c>
-    # Turn on the Rewrite Engine
     RewriteEngine On
 
-    # Set the base directory for rewrites.
-    # With DocumentRoot pointing to /public, RewriteBase should be /
+    # If your app is directly under the domain (e.g. localhost/, yourdomain.com/)
+    # And DocumentRoot is /path/to/project/public
     RewriteBase /
 
-    # Send all requests not for existing files or directories to index.php
-    # Check if the requested path is NOT a real file
+    # If your app is in a subdirectory (e.g. localhost/mybillingapp/)
+    # AND DocumentRoot is /path/to/project/public
+    # THEN RewriteBase should be /mybillingapp/
+    # Example: RewriteBase /mybillingapp/
+    # (Adjust this if necessary for your local setup. Vercel ignores RewriteBase)
+
+    # Send all requests not for existing files or directories to index.php in the parent directory
     RewriteCond %{REQUEST_FILENAME} !-f
-    # Check if the requested path is NOT a real directory
     RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ ../index.php [L,QSA] # Simpler rule first. Bramus Router can parse REQUEST_URI.
 
-    # If it's neither a file nor a directory within the public directory, rewrite the request to index.php
-    RewriteRule ^(.*)$ index.php [L]
-
+    # If the above doesn't work well with Bramus Router and subdirectories,
+    # you might try passing the path explicitly:
+    # RewriteRule ^(.*)$ ../index.php/$1 [L,QSA]
+    # But usually, modern routers prefer to look at $_SERVER['REQUEST_URI'] themselves.
 </IfModule>
-
-# Optional: Deny access to specific files/directories in public if needed
-# e.g., <Files .env> Order allow,deny Deny from all </Files>

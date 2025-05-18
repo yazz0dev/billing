@@ -1,6 +1,10 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+    // Define BASE_PATH for JavaScript
+    // Use the PHP-defined BASE_PATH, escaped for JS
+    window.BASE_PATH = "<?php echo $e(BASE_PATH); ?>";
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $e($pageTitle ?? $appConfig['name']); ?></title>
@@ -73,6 +77,5 @@
         <?php endforeach; ?>
     <?php endif; ?>
     <script src="<?php echo $baseUrl; ?>/js/topbar.js" defer></script> <!-- topbar.js is common to main layout -->
-
 </body>
 </html>

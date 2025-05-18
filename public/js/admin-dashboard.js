@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const response = await fetch('/api/products', { // API endpoint for adding products
+                const response = await fetch(window.BASE_PATH + '/api/products', { // API endpoint for adding products
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
         viewSalesButton.addEventListener('click', async () => {
             salesDataDiv.innerHTML = '<p class="text-center">Loading sales data...</p>';
             try {
-                const response = await fetch('/api/sales'); // API endpoint for sales (GET request, typically no CSRF needed)
+                const response = await fetch(window.BASE_PATH + '/api/sales'); // API endpoint for sales (GET request, typically no CSRF needed)
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const result = await response.json();
                 

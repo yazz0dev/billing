@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function loadProducts() {
         try {
-            const response = await fetch('/api/products'); // GET request
+            const response = await fetch(window.BASE_PATH + '/api/products'); // GET request
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const result = await response.json();
 
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             delete data['product_action_csrf']; // Remove CSRF from body if sent in header
 
             try {
-                const response = await fetch('/api/products', {
+                const response = await fetch(window.BASE_PATH + '/api/products', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     window.editProduct = async function(productId) {
         try {
-            const productResponse = await fetch(`/api/products/${productId}`);
+            const productResponse = await fetch(window.BASE_PATH + `/api/products/${productId}`);
             if (!productResponse.ok) {
                  if(window.popupNotification) window.popupNotification.error("Product not found or error fetching.");
                  return;
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (name !== null && price !== null && stock !== null) { // Check for null if user cancels prompt
                     const updatedProduct = { name, price: parseFloat(price), stock: parseInt(stock) };
                     
-                    const updateResponse = await fetch(`/api/products/${productId}`, {
+                    const updateResponse = await fetch(window.BASE_PATH + `/api/products/${productId}`, {
                         method: 'PUT', // Or PATCH
                         headers: {
                             'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.deleteProduct = async function(productId) {
         if (!confirm("Are you sure you want to delete this product?")) return;
         try {
-            const response = await fetch(`/api/products/${productId}`, {
+            const response = await fetch(window.BASE_PATH + `/api/products/${productId}`, {
                 method: 'DELETE',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',

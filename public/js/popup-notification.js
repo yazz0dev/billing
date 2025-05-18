@@ -24,8 +24,8 @@
                 zIndex: options.zIndex || 9999, 
                 fetchFromServer: options.fetchFromServer !== undefined ? options.fetchFromServer : true,
                 fetchInterval: options.fetchInterval || 30000, // 30 seconds
-                fetchUrl: options.fetchUrl || '/api/notifications/fetch', // Updated
-                markSeenUrl: options.markSeenUrl || '/api/notifications/mark-seen', // Updated
+                fetchUrl: (options.fetchUrl || (window.BASE_PATH ? window.BASE_PATH + '/api/notifications/fetch' : '/api/notifications/fetch')),
+                markSeenUrl: (options.markSeenUrl || (window.BASE_PATH ? window.BASE_PATH + '/api/notifications/mark-seen' : '/api/notifications/mark-seen')),
                 // dbCheckUrl: options.dbCheckUrl || '/billing/db-check.php', // Commented out
             };
 
