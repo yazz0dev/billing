@@ -108,4 +108,36 @@ class BillService
         $billDocs = $this->billRepository->findAll();
         return array_map(fn($doc) => (array) $doc->getArrayCopy(), $billDocs);
     }
+
+    public function getBillById(string $billId): ?array
+    {
+        $billDoc = $this->billRepository->findById($billId);
+        if ($billDoc) {
+            // Convert BSONDocument to array, handling nested BSON types if necessary
+            $billArray = (array) $billDoc->getArrayCopy();
+            // Example: Convert ObjectId and UTCDateTime to strings for API response consistency
+            if (isset($billArray['_id']) && $billArray['_id'] instanceof \MongoDB\BSON\ObjectId) {
+                $billArray['_id'] = (string) $billArray['_id'];
+            }
+            if (isset($billArray['user_id']) && $billArray['user_id'] instanceof \MongoDB\BSON\ObjectId) {
+                $billArray['user_id'] = (string) $billArray['user_id'];
+            }
+            if (isset($billArray['created_at']) && $billArray['created_at'] instanceof \MongoDB\BSON\UTCDateTime) {
+                $billArray['created_at'] = $billArray['created_at']->toDateTime()->format(DATE_ISO8601);
+            }
+            if (isset($billArray['items']) && is_array($billArray['items'])) {
+                foreach ($billArray['items'] as $key => $item) {
+                    if (is_object($item) && method_exists($item, 'getArrayCopy')) {
+                         $itemArray = (array) $item->getArrayCopy();
+                         if (isset($itemArray['product_id']) && $itemArray['product_id'] instanceof \MongoDB\BSON\ObjectId) {
+                            $itemArray['product_id'] = (string) $itemArray['product_id'];
+                         }
+                         $billArray['items'][$key] = $itemArray;
+                    }
+                }
+            }
+            return $billArray;
+        }
+        return null;
+    }
 }

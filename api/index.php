@@ -1,54 +1,9 @@
 <?php
 declare(strict_types=1);
 
-// Fix: Set PROJECT_ROOT to the actual project root (one level up from /api)
-define('PROJECT_ROOT', dirname(__DIR__));
-
-// Include composer autoloader
-if (file_exists(PROJECT_ROOT . '/vendor/autoload.php')) {
-    require PROJECT_ROOT . '/vendor/autoload.php';
-} else {
-    http_response_code(500);
-    echo '<h1>Server Error</h1><p>Dependencies not installed. Please run <code>composer install</code>.</p>';
-    exit;
-}
-
-// Load environment variables
-if (file_exists(PROJECT_ROOT . '/.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable(PROJECT_ROOT);
-    $dotenv->safeLoad();
-}
-
-// Load application configuration
-$appConfig = require PROJECT_ROOT . '/config/app.php';
-
-// Set error display based on environment
-if (($appConfig['env'] ?? 'production') === 'development' || ($appConfig['debug'] ?? false)) {
-    ini_set('display_errors', '1');
-    error_reporting(E_ALL);
-} else {
-    ini_set('display_errors', '0');
-    error_reporting(0);
-}
-
-// Initialize session
-if (session_status() === PHP_SESSION_NONE) {
-    session_name($appConfig['session_name'] ?? 'APP_SESSION');
-    session_start([
-        'cookie_httponly' => true,
-        'cookie_secure' => ($appConfig['env'] ?? 'production') === 'production',
-        'cookie_samesite' => 'Lax',
-    ]);
-}
-
-// Define the base path for the application if it's in a subdirectory
-// This is important for bramus/router if your app isn't at the domain root.
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? ''; // e.g., /index.php or /billing_app/index.php
-$baseDir = dirname($scriptName); // e.g., / or /billing_app
-if ($baseDir === '/' || $baseDir === '\\') {
-    $baseDir = '';
-}
-define('BASE_PATH', $baseDir); // Will be '' or '/billing_app'
+// Bootstrap code (PROJECT_ROOT, autoloader, .env, config, error reporting, session, BASE_PATH, DB connect)
+// is GONE from here. It's now handled by public/index.php.
+// This script assumes public/index.php has already run and set up the environment.
 
 // --- Import necessary classes ---
 use App\Auth\AuthController;
@@ -61,30 +16,19 @@ use App\Notification\NotificationController;
 use App\Core\View;
 use App\Core\Response as CoreResponse;
 use App\Core\Request as CoreRequest;
-use App\Core\Database;
+// Database class is used by controllers, but connect() is called in public/index.php
+// use App\Core\Database; 
 use App\Middleware\AuthMiddleware; // Assuming this is your middleware class
 
 // Bramus Router
 use Bramus\Router\Router;
 
-// Attempt database connection early
-try {
-    Database::connect();
-} catch (\MongoDB\Driver\Exception\Exception $e) {
-    http_response_code(503);
-    error_log("Database Connection Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    $view = new View(PROJECT_ROOT . '/templates');
-    $errorMessage = $appConfig['debug'] ? nl2br(htmlspecialchars("Database Connection Failed: " . $e->getMessage() . "\n\nTrace:\n" . $e->getTraceAsString())) : 'Database service is currently unavailable.';
-    echo $view->render('error/500.php', ['pageTitle' => 'Database Error', 'message' => $errorMessage], 'layouts/minimal.php');
-    exit;
-} catch (\Throwable $e) {
-    http_response_code(500);
-    error_log("Early Setup Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    $view = new View(PROJECT_ROOT . '/templates');
-    $errorMessage = $appConfig['debug'] ? nl2br(htmlspecialchars("Initialization Error: " . $e->getMessage() . "\n\nTrace:\n" . $e->getTraceAsString())) : 'An unexpected error occurred during application startup.';
-    echo $view->render('error/500.php', ['pageTitle' => 'Initialization Error', 'message' => $errorMessage], 'layouts/minimal.php');
-    exit;
-}
+// The initial Database::connect() call and its specific error handling block have been moved to public/index.php.
+// $appConfig should be available globally if public/index.php included it after loading.
+// If not, it might need to be passed or re-fetched, but typically config is loaded once.
+// For safety, let's re-require appConfig if it's used directly in this file for error handling.
+$appConfig = require PROJECT_ROOT . '/config/app.php';
+
 
 // Create Router instance
 $router = new Router();
@@ -258,8 +202,8 @@ $router->mount('/api', function () use ($router, $authMiddlewareHandler) {
         });
         $router->get('/(\w+)', function ($id) { // For /api/bills/{id}
             [$request, $response] = getRequestResponseObjects();
-            // Pass $id to controller method (adapt controller method signature)
-            (new BillController())->apiGetBillById($request, $response, ['id' => $id]);
+            // Pass $id directly to controller method
+            (new BillController())->apiGetBillById($request, $response, $id);
         });
     });
 
