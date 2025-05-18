@@ -1,4 +1,8 @@
 <?php // ./index.php
+// This is the main entry point for the application.
+// Ensure your web server is configured to use this file as the front controller.
+// For Apache, .htaccess in /public/ should rewrite all requests to ../index.php
+
 declare(strict_types=1);
 
 define('PROJECT_ROOT', __DIR__); // Project root is here
