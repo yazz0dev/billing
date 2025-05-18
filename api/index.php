@@ -28,8 +28,8 @@ use App\Notification\NotificationController;
 use App\Core\Router;
 use App\Core\View;
 use App\Core\Response as CoreResponse; // Alias to avoid conflict if Response is used locally
-use Core\Exception\RouteNotFoundException;
-use Core\Exception\AccessDeniedException;
+use App\Core\Exception\RouteNotFoundException; // Changed namespace
+use App\Core\Exception\AccessDeniedException; // Changed namespace
 
 if (file_exists(PROJECT_ROOT . '/.env')) {
     $dotenv = Dotenv\Dotenv::createImmutable(PROJECT_ROOT);

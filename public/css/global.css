@@ -143,7 +143,11 @@ body {
     color: var(--text-primary);
     line-height: 1.7;
     overflow-x: hidden;
-    padding-top: var(--topbar-height); /* Add padding to body to account for fixed topbar */
+    /* REMOVED: padding-top: var(--topbar-height); */ /* Add padding to body to account for fixed topbar */
+}
+
+body.layout-main { /* Apply top padding only to layouts that include the topbar */
+    padding-top: var(--topbar-height);
 }
 
 .page-wrapper {

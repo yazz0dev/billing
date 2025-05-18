@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/css/global.css?v=<?php echo filemtime(PROJECT_ROOT . '/public/css/global.css'); ?>">
     <?php if(isset($additionalStyles)) echo $additionalStyles; ?>
 </head>
-<body class="<?php echo $e($bodyClass ?? ''); ?>">
+<body class="layout-main <?php echo $e($bodyClass ?? ''); ?>">
     <div class="page-wrapper">
         <?php if(!isset($hideTopbar) || !$hideTopbar): ?>
             <?php require PROJECT_ROOT . '/templates/partials/topbar.php'; ?>

@@ -2,8 +2,8 @@
 
 namespace App\Core;
 
-use Core\Exception\RouteNotFoundException;
-use Core\Exception\AccessDeniedException; // Custom exception
+use App\Core\Exception\RouteNotFoundException; // Changed namespace
+use App\Core\Exception\AccessDeniedException; // Changed namespace & Custom exception
 
 class Router
 {

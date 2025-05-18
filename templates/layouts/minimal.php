@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/css/global.css?v=<?php echo filemtime(PROJECT_ROOT . '/public/css/global.css'); ?>">
     <!-- Add any other common head elements for minimal layout -->
 </head>
-<body class="<?php echo $e($bodyClass ?? ''); ?>">
+<body class="layout-minimal <?php echo $e($bodyClass ?? ''); ?>">
     <div class="page-wrapper">
         <?php echo $content; // This is where the specific page content will be injected ?>
     </div>

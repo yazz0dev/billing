@@ -1,15 +1,15 @@
 <?php
 
-namespace Core\Exception;
+namespace App\Core\Exception;
 
 class HttpException extends \Exception
 {
     protected int $statusCode;
 
-    public function __construct(string $message = "", int $statusCode = 500, \Throwable $previous = null)
+    public function __construct(string $message = "", int $code = 0, ?\Throwable $previous = null)
     {
-        $this->statusCode = $statusCode;
-        parent::__construct($message, $statusCode, $previous); // Use statusCode also for the general \Exception code
+        parent::__construct($message, $code, $previous);
+        $this->statusCode = $code;
     }
 
     public function getStatusCode(): int
