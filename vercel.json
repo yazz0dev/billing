@@ -20,11 +20,11 @@
     
 
     {
-      "src": "/billing/(.*)", // Matches /billing/login, /billing/admin/index.php, etc.
+      "src": "/billing/(.*)", 
       "dest": "/api/index.php"
     },
     {
-      "src": "/billing", // Matches a request to exactly /billing
+      "src": "/billing", 
       "dest": "/api/index.php"
     }
     
