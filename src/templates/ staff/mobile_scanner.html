@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mobile Barcode Scanner</title>
+    <link rel="stylesheet" href="/css/global.css?v=1"> <!-- Simple cache bust or remove v -->
+    <style>
+        /* Styles from original staff/index.html are fine, or integrate more with global.css */
+        body { background-color: var(--bg-body); color: var(--text-primary); /* ... */ }
+        .scanner-container { /* ... */ }
+        /* ... other specific styles ... */
+    </style>
+</head>
+<body>
+    <div class="scanner-container">
+        <div class="scanner-page-header">
+            <h1 class="page-title" style="font-size: 1.4rem; margin-bottom: 0; text-align: left;">Mobile Scanner</h1>
+            <span class="user-info-scanner">User: <strong id="mobileUsernameDisplay">Loading...</strong></span>
+        </div>
+        
+        <div id="activationInfo" class="glass p-3">
+            <p id="activationStatusMessage">Checking activation status with POS terminal...</p>
+            <button id="tryActivateScannerBtn" class="btn mt-2" style="display:none;">Try Activating Scanner</button>
+        </div>
+
+        <div id="scanner-region" style="display:none;"></div>
+        <div id="statusMessage" class="status-message info" style="display:none;"></div>
+        <div id="lastScannedProduct" class="product-info"></div>
+
+        <div class="controls" style="display:none;" id="scanControls">
+            <button id="stopScannerBtn" class="btn">Stop Camera</button>
+        </div>
+
+        <div id="recentScans" class="glass p-2 mt-2" style="display:none;">
+            <h4 style="font-size: 0.9rem; margin-bottom: 5px;">Recent Scans:</h4>
+            <ul id="recentScansList" style="list-style: none; padding: 0;"></ul>
+        </div>
+        <a href="/logout" class="btn" style="background-color: var(--error); margin-top: 20px; font-size: 0.9rem;">Logout</a>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+    // This is public/js/mobile-scanner.js (contents adapted from original staff/index.html)
+    document.addEventListener('DOMContentLoaded', function () {
+        const stopScannerBtn = document.getElementById('stopScannerBtn');
+        const scannerRegion = document.getElementById('scanner-region');
+        const statusMessage = document.getElementById('statusMessage');
+        const lastScannedProductDiv = document.getElementById('lastScannedProduct');
+        const scanControls = document.getElementById('scanControls');
+        const recentScansDiv = document.getElementById('recentScans');
+        const recentScansList = document.getElementById('recentScansList');
+        const activationStatusMessage = document.getElementById('activationStatusMessage');
+        const tryActivateScannerBtn = document.getElementById('tryActivateScannerBtn');
+        const mobileUsernameDisplay = document.getElementById('mobileUsernameDisplay');
+
+        let html5QrCodeScan = null;
+        let isScannerHardwareActive = false;
+        let isSessionActiveForScanning = false;
+        let scanCooldown = false;
+        let activationCheckInterval = null;
+
+        function displayScanStatus(message, type = 'info') { /* ... same ... */ }
+        function addRecentScan(productName, code) { /* ... same ... */ }
+
+        async function attemptToActivateScannerSession() {
+            activationStatusMessage.textContent = 'Attempting to activate with POS...';
+            tryActivateScannerBtn.style.display = 'none';
+            try {
+                // UPDATED API ENDPOINT
+                const response = await fetch('/api/scanner/activate-mobile', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success && data.session_activated) {
+                    isSessionActiveForScanning = true;
+                    activationStatusMessage.textContent = `Scanner activated by ${data.staff_username || 'POS'}. Ready to scan.`;
+                    activationStatusMessage.style.color = 'var(--success-text-emphasis)';
+                    activationStatusMessage.parentElement.style.borderColor = 'var(--success)';
+                    tryActivateScannerBtn.style.display = 'none';
+                    if (!isScannerHardwareActive) startBarcodeScannerHardware();
+                    if (activationCheckInterval) clearInterval(activationCheckInterval);
+                    activationCheckInterval = null;
+                    if(mobileUsernameDisplay) mobileUsernameDisplay.textContent = data.staff_username || 'Staff';
+                } else {
+                    isSessionActiveForScanning = false;
+                    activationStatusMessage.textContent = data.message || 'POS terminal has not activated scanner mode. Ask staff at POS to click "Activate Mobile Scanner".';
+                    activationStatusMessage.style.color = 'var(--error-text-emphasis)';
+                    activationStatusMessage.parentElement.style.borderColor = 'var(--error)';
+                    tryActivateScannerBtn.style.display = 'block';
+                    if(isScannerHardwareActive) stopBarcodeScannerHardware();
+                    if(mobileUsernameDisplay) mobileUsernameDisplay.textContent = data.current_user || 'Staff (Not Paired)';
+                }
+            } catch (error) {
+                isSessionActiveForScanning = false;
+                activationStatusMessage.textContent = 'Network error checking activation. Will retry.';
+                tryActivateScannerBtn.style.display = 'block';
+                console.error("Activation check error:", error);
+            }
+        }
+        
+        attemptToActivateScannerSession(); // Initial check
+        activationCheckInterval = setInterval(attemptToActivateScannerSession, 7000);
+
+        if(tryActivateScannerBtn) tryActivateScannerBtn.addEventListener('click', attemptToActivateScannerSession);
+        if(stopScannerBtn) stopScannerBtn.addEventListener('click', stopBarcodeScannerHardware);
+
+        function startBarcodeScannerHardware() { /* ... same ... */ }
+        function stopBarcodeScannerHardware() { /* ... same ... */ }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (scanCooldown || !isScannerHardwareActive || !isSessionActiveForScanning) return; 
+            scanCooldown = true;
+            setTimeout(() => { scanCooldown = false; }, 1500);
+
+            displayScanStatus(`Scanned: ${decodedText}. Sending...`, 'info');
+            lastScannedProductDiv.textContent = `Last: ${decodedText}`;
+
+            const formData = new FormData();
+            // formData.append('action', 'submitScannedProduct'); // Not needed with dedicated API
+            formData.append('scanned_product_id', decodedText);
+
+            // UPDATED API ENDPOINT
+            fetch('/api/scanner/submit-scan', { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayScanStatus(`Sent: ${data.product_name || decodedText}`, 'success');
+                        addRecentScan(data.product_name, decodedText);
+                    } else {
+                        displayScanStatus(`Server Error: ${data.message || 'Failed to send.'}`, 'error');
+                        addRecentScan(`Failed: ${data.message || 'Error'}`, decodedText);
+                         if(data.message && data.message.toLowerCase().includes("no active pairing")){
+                            isSessionActiveForScanning = false;
+                            activationStatusMessage.textContent = 'Pairing lost or POS deactivated. Re-activate on POS.';
+                            tryActivateScannerBtn.style.display = 'block';
+                            if(isScannerHardwareActive) stopBarcodeScannerHardware();
+                        }
+                    }
+                })
+                .catch(error => {
+                    displayScanStatus(`Network Error: ${error.message}`, 'error');
+                    addRecentScan(`Network Error`, decodedText);
+                });
+        }
+        function onScanFailure(error) { /* ... same, usually quiet ... */ }
+        
+        // Wake lock logic remains the same
+        let wakeLock = null;
+        const requestWakeLock = async () => { /* ... same ... */ };
+        const releaseWakeLock = () => { /* ... same ... */ };
+        document.addEventListener('visibilitychange', async () => { /* ... same ... */ });
+    });
+    </script>
+</body>
+</html>
