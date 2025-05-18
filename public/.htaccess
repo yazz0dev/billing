@@ -12,7 +12,8 @@
     # Example: RewriteBase /mybillingapp/
     # (Adjust this if necessary for your local setup. Vercel ignores RewriteBase)
 
-    # Send all requests not for existing files or directories to index.php in the parent directory
+    # Make sure your Apache DocumentRoot is set to this /public directory.
+    # All requests not for existing files or directories will be rewritten to ../index.php (project root).
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ ../index.php [L,QSA] # Simpler rule first. Bramus Router can parse REQUEST_URI.

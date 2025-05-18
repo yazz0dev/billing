@@ -3,6 +3,10 @@
 // Ensure your web server is configured to use this file as the front controller.
 // For Apache, .htaccess in /public/ should rewrite all requests to ../index.php
 
+// IMPORTANT: For correct routing, your web server's DocumentRoot should be set to the /public directory.
+// The .htaccess in /public will rewrite all requests to ../index.php (the project root).
+// Make sure PHP is enabled in your web server configuration.
+
 declare(strict_types=1);
 
 define('PROJECT_ROOT', __DIR__); // Project root is here

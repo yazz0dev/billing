@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 
-define('PROJECT_ROOT', __DIR__);
+// Fix: Set PROJECT_ROOT to the actual project root (one level up from /api)
+define('PROJECT_ROOT', dirname(__DIR__));
 
 // Include composer autoloader
 if (file_exists(PROJECT_ROOT . '/vendor/autoload.php')) {
@@ -42,26 +43,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Define the base path for the application if it's in a subdirectory
 // This is important for bramus/router if your app isn't at the domain root.
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? ''; // e.g., /billing/index.php (if index.php is in public)
-                                         // or /index.php (if index.php is in root and served directly)
-
-// If using public directory as document root and index.php is in parent:
-// The actual URI path passed to bramus/router will be relative to the document root.
-// So if DocumentRoot = /path/to/project/public
-// And URL = http://localhost/some/path
-// Bramus will see /some/path
-// If your app is at http://localhost/my-app/ (and DocumentRoot is /path/to/project/public)
-// Then BASE_PATH for links might be /my-app, but Bramus routes should be defined relative to that,
-// e.g., $router->get('/login', ...) for http://localhost/my-app/login
-// Bramus router automatically handles subdirectories if it's running from a script in a subdirectory.
-// Since our index.php is in the root, but .htaccess rewrites from public, we need to be careful.
-// Let's assume for Vercel and local setup (DocumentRoot=public) that BASE_PATH is mostly for link generation.
-
-$baseDir = dirname(str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? ''));
-if ($baseDir === '/' || $baseDir === '.') {
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? ''; // e.g., /index.php or /billing_app/index.php
+$baseDir = dirname($scriptName); // e.g., / or /billing_app
+if ($baseDir === '/' || $baseDir === '\\') {
     $baseDir = '';
 }
-define('BASE_PATH', $baseDir); // e.g., '' or '/billing_project_folder_if_not_root_domain'
+define('BASE_PATH', $baseDir); // Will be '' or '/billing_app'
 
 // --- Import necessary classes ---
 use App\Auth\AuthController;
