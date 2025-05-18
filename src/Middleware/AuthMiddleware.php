@@ -7,21 +7,35 @@ use App\Core\Exception\AccessDeniedException;
 
 class AuthMiddleware
 {
-    // In a real app, $roles might come from route definition or be more complex
-    public function handle(Request $request, ...$roles): void
+    /**
+     * Handle an incoming request.
+     *
+     * @param Request $request
+     * @param string ...$roles Required roles. If empty, just checks for authentication.
+     * @throws AccessDeniedException
+     */
+    public function handle(Request $request, string ...$roles): void
     {
         if (!isset($_SESSION['user_id'])) {
-            throw new AccessDeniedException('Authentication required.'); // This will trigger redirect to login in api/index.php
+            // User is not authenticated
+            throw new AccessDeniedException('Authentication required. Please log in.');
         }
 
         if (!empty($roles)) {
+            // Roles are specified, check if the user has one of them
             $userRole = $_SESSION['user_role'] ?? null;
-            $allowed = false;
-            foreach ($roles as $role) {
-                if ($userRole === $role) {
-                    $allowed = true;
+            $isAllowed = false;
+            foreach ($roles as $requiredRole) {
+                if (strtolower($userRole) === strtolower(trim($requiredRole))) {
+                    $isAllowed = true;
                     break;
                 }
             }
-            if (!$allowed) {
-                throw new Access
+            if (!$isAllowed) {
+                throw new AccessDeniedException('You do not have permission to access this resource.');
+            }
+        }
+        // If no roles specified, authentication check passed.
+        // If roles specified, role check passed.
+    }
+}
