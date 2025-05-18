@@ -11,7 +11,7 @@ class Router
 
     public function addRoute(string $method, string $path, array $handlerConfig): void // Renamed $handler to $handlerConfig for clarity
     {
-        $this->routes[strtoupper($method)][$this->.normalizePath($path)] = $handlerConfig;
+        $this->routes[strtoupper($method)][$this->normalizePath($path)] = $handlerConfig;
     }
 
     private function normalizePath(string $path): string
