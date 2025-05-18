@@ -2,8 +2,10 @@
 
 namespace Core\Exception;
 
-class RouteNotFoundException extends \Exception
+class RouteNotFoundException extends HttpException
 {
-    protected $message = 'Route Not Found';
-    protected $code = 404;
+    public function __construct(string $message = "Route Not Found", \Throwable $previous = null)
+    {
+        parent::__construct($message, 404, $previous);
+    }
 }

@@ -56,4 +56,41 @@ class BillController
             $response->json(['success' => false, 'message' => 'Error fetching bills.'], 500);
         }
     }
+
+    public function apiGetBillById(Request $request, Response $response, array $params)
+    {
+        // Auth check ideally via middleware in router, or explicitly here if needed
+        // For simplicity, assuming middleware handles auth for routes calling this.
+        // If not, add:
+        // if (!$this->authService->check()) {
+        //     $response->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        //     return;
+        // }
+
+        $billId = $params['id'] ?? null;
+
+        if (!$billId) {
+            $response->json(['success' => false, 'message' => 'Bill ID not provided.'], 400);
+            return;
+        }
+
+        try {
+            $bill = $this->billService->getBillById($billId);
+            if ($bill) {
+                // Optional: Check if the current user is authorized to view this specific bill
+                // e.g., if bills are tied to users or roles.
+                // $currentUser = $this->authService->user();
+                // if ($currentUser['role'] !== 'admin' && $bill['user_id'] !== $currentUser['id']) {
+                //    $response->json(['success' => false, 'message' => 'Forbidden'], 403);
+                //    return;
+                // }
+                $response->json(['success' => true, 'data' => $bill]);
+            } else {
+                $response->json(['success' => false, 'message' => 'Bill not found.'], 404);
+            }
+        } catch (\Exception $e) {
+            error_log("API Get Bill By ID Error: " . $e->getMessage());
+            $response->json(['success' => false, 'message' => 'Error fetching bill details.'], 500);
+        }
+    }
 }

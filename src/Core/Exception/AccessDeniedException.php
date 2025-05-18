@@ -2,8 +2,10 @@
 
 namespace Core\Exception;
 
-class AccessDeniedException extends \Exception
+class AccessDeniedException extends HttpException
 {
-    protected $message = 'Access Denied';
-    protected $code = 403;
+    public function __construct(string $message = "Access Denied", \Throwable $previous = null)
+    {
+        parent::__construct($message, 403, $previous);
+    }
 }

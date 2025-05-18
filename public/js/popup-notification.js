@@ -24,9 +24,9 @@
                 zIndex: options.zIndex || 9999, 
                 fetchFromServer: options.fetchFromServer !== undefined ? options.fetchFromServer : true,
                 fetchInterval: options.fetchInterval || 30000, // 30 seconds
-                fetchUrl: options.fetchUrl || '/billing/notification.php',
-                markSeenUrl: options.markSeenUrl || '/billing/notification.php',
-                dbCheckUrl: options.dbCheckUrl || '/billing/db-check.php', // Added for db-check.php
+                fetchUrl: options.fetchUrl || '/api/notifications/fetch', // Updated
+                markSeenUrl: options.markSeenUrl || '/api/notifications/mark-seen', // Updated
+                // dbCheckUrl: options.dbCheckUrl || '/billing/db-check.php', // Commented out
             };
 
             this.container = null;
@@ -249,22 +249,25 @@
                         if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
                         this.fetchIntervalId = null; 
                         
-                        setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 5);
+                        // Commenting out the call to checkDatabaseConnectionAndResume
+                        // setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 5);
                         this.show({
                            type: 'warning',
                            title: 'System Alert',
-                           message: 'Notification service is having trouble. Will attempt to reconnect.',
+                           message: 'Notification service is having trouble. Retries exhausted for now.', // Updated message
                            duration: 10000
                         });
                     } else {
                         this.fetchBackoffTime = Math.min(this.fetchBackoffTime * 1.5, 60000); 
                         if (this.fetchIntervalId) clearInterval(this.fetchIntervalId);
+                        // Re-scheduling fetchFromServer directly instead of relying on dbCheckUrl logic
                         this.fetchIntervalId = setInterval(() => this.fetchFromServer(), this.fetchBackoffTime);
                     }
                 }
             });
         }
         
+        /* // Commenting out the entire checkDatabaseConnectionAndResume method
         checkDatabaseConnectionAndResume() {
             const formData = new FormData();
             formData.append('action', 'check_connection'); 
@@ -290,6 +293,7 @@
                 setTimeout(() => this.checkDatabaseConnectionAndResume(), this.fetchBackoffTime * 2);
             });
         }
+        */
 
         getDefaultTitle(type) {
             const titles = { success: 'Success!', error: 'Error!', warning: 'Warning!', info: 'Information' };
@@ -300,7 +304,7 @@
             const icons = {
                 success: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--success, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
                 error: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--error, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>`,
-                warning: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--warning, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`,
+                warning: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 24 24" stroke-width="2" stroke="var(--warning, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`,
                 info: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--info, currentColor)"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>`
             };
             return icons[type] || icons.info;

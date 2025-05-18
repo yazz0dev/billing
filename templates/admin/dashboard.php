@@ -1,4 +1,3 @@
-
 <?php // templates/admin/dashboard.php
 // $pageTitle, $totalSales, $totalProducts, $csrf_token_name, $csrf_token_value available
 ?>
@@ -49,78 +48,5 @@
 
 <?php
 // Example of page-specific scripts
-$pageScripts = ['/js/admin-dashboard.js'];
+$pageScripts = ['/js/admin-dashboard.js']; // Updated to use the external file
 ?>
-
-<script>
-// Contents of public/js/admin-dashboard.js would be:
-document.addEventListener('DOMContentLoaded', function() {
-    const addProductForm = document.getElementById('addProductFormAdmin');
-    const viewSalesButton = document.getElementById('viewSalesBtn');
-    const salesDataDiv = document.getElementById('salesDataDisplay');
-    const csrfToken = document.querySelector('input[name="<?php echo $e($csrf_token_name); ?>"]').value;
-
-
-    if (addProductForm) {
-        addProductForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            delete data['<?php echo $e($csrf_token_name); ?>']; // CSRF is in header for API
-
-            try {
-                const response = await fetch('/api/products', { // API endpoint for adding products
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': csrfToken // Send CSRF if your API setup requires it
-                    },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    window.popupNotification.success(result.message || "Product added successfully!", "Product Added");
-                    e.target.reset();
-                } else {
-                    window.popupNotification.error(result.message || "Failed to add product.", "Error");
-                }
-            } catch (error) {
-                console.error("Add product error:", error);
-                window.popupNotification.error("A server error occurred.", "Server Error");
-            }
-        });
-    }
-
-    if (viewSalesButton) {
-        viewSalesButton.addEventListener('click', async () => {
-            salesDataDiv.innerHTML = '<p class="text-center">Loading sales data...</p>';
-            try {
-                const response = await fetch('/api/sales'); // API endpoint for sales
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const result = await response.json();
-                
-                if (result.success && result.data && result.data.length === 0) {
-                    salesDataDiv.textContent = "No sales data available.";
-                } else if (result.success && result.data) {
-                    // Render sales data more nicely than just JSON.stringify
-                    let html = '<ul>';
-                    result.data.forEach(sale => {
-                        html += `<li>Bill ID: ${sale._id.$oid} - Amount: ${sale.total_amount} - Date: ${new Date(sale.created_at.$date).toLocaleDateString()}</li>`;
-                    });
-                    html += '</ul>';
-                    salesDataDiv.innerHTML = html;
-                    window.popupNotification.success(`Loaded ${result.data.length} sales records.`, "Sales Data Loaded");
-                } else {
-                    throw new Error(result.message || "Invalid sales data received.");
-                }
-            } catch (error) {
-                console.error("Fetch sales error:", error);
-                salesDataDiv.textContent = "Failed to load sales data.";
-                window.popupNotification.error("Failed to fetch sales data.", "Data Error");
-            }
-        });
-    }
-});
-</script>

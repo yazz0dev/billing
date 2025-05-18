@@ -28,7 +28,7 @@ class ProductService
 
     public function addProduct(string $name, float $price, int $stock): ?string
     {
-        $name = trim(filter_var($name, FILTER_SANITIZE_STRING));
+        $name = trim(htmlspecialchars($name, ENT_QUOTES | ENT_HTML5));
         if (empty($name) || $price < 0 || $stock < 0) {
             throw new \InvalidArgumentException("Invalid product data provided.");
         }
@@ -44,7 +44,7 @@ class ProductService
 
     public function updateProduct(string $id, string $name, float $price, int $stock): bool
     {
-        $name = trim(filter_var($name, FILTER_SANITIZE_STRING));
+        $name = trim(htmlspecialchars($name, ENT_QUOTES | ENT_HTML5));
         if (empty($name) || $price < 0 || $stock < 0) {
             throw new \InvalidArgumentException("Invalid product data for update.");
         }

@@ -9,9 +9,9 @@ class Router
 {
     protected array $routes = [];
 
-    public function addRoute(string $method, string $path, array $handler): void
+    public function addRoute(string $method, string $path, array $handlerConfig): void // Renamed $handler to $handlerConfig for clarity
     {
-        $this->routes[strtoupper($method)][$this->normalizePath($path)] = $handler;
+        $this->routes[strtoupper($method)][$this->.normalizePath($path)] = $handlerConfig;
     }
 
     private function normalizePath(string $path): string
@@ -24,73 +24,98 @@ class Router
     {
         $requestMethod = strtoupper($requestMethod);
         $uri = $this->normalizePath(parse_url($requestUri, PHP_URL_PATH) ?: '/');
+        $rawBody = file_get_contents('php://input'); // Read raw body once
 
-        foreach ($this->routes[$requestMethod] ?? [] as $routePath => $handler) {
+        foreach ($this->routes[$requestMethod] ?? [] as $routePath => $routeConfig) {
             $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $routePath);
             $pattern = '#^' . $pattern . '$#';
 
             if (preg_match($pattern, $uri, $matches)) {
                 $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-                $this->callHandler($handler, $params);
+                
+                // Create Request and Response objects once per dispatch
+                $request = new Request($_GET, $_POST, $_COOKIE, $_FILES, $_SERVER, $rawBody);
+                $response = new Response();
+
+                $this->callHandler($routeConfig, $request, $response, $params);
                 return;
             }
         }
         throw new RouteNotFoundException("No route found for {$requestMethod} {$uri}");
     }
 
-    protected function callHandler(array $handler, array $params = []): void
+    protected function callHandler(array $routeConfig, Request $request, Response $response, array $params = []): void
     {
-        [$controllerClass, $method] = $handler;
+        // Determine the actual handler and middleware configuration
+        $actualHandler = $routeConfig['handler'] ?? $routeConfig;
+        $middlewareConfig = $routeConfig['middleware'] ?? null;
+
+        if (!is_array($actualHandler) || count($actualHandler) !== 2) {
+            throw new \RuntimeException("Invalid handler configuration for route. Expected [ControllerClass, 'methodName'].");
+        }
+        [$controllerClass, $methodName] = $actualHandler;
 
         if (!class_exists($controllerClass)) {
             throw new \RuntimeException("Controller class {$controllerClass} not found.");
         }
 
-        $controller = new $controllerClass(); // Basic, consider DI container for complex apps
+        $controller = new $controllerClass();
 
-        // Basic middleware check example (can be expanded)
-        if (isset($handler['middleware'])) {
-            $middlewares = is_array($handler['middleware']) ? $handler['middleware'] : [$handler['middleware']];
+        // Middleware check
+        if ($middlewareConfig) {
+            $middlewares = is_array($middlewareConfig) ? $middlewareConfig : [$middlewareConfig];
             foreach ($middlewares as $middlewareName) {
-                $middlewareClass = 'App\\Middleware\\' . ucfirst($middlewareName) . 'Middleware';
+                // Construct middleware class name, assuming a convention like 'auth:admin' -> AuthMiddleware with 'admin' param
+                // This part might need more sophisticated parsing if middleware params are complex.
+                // For 'auth:admin', $middlewareName is 'auth:admin'. We might need to parse this.
+                // Simple example: if middleware is just 'auth', class is 'AuthMiddleware'.
+                // If 'auth:admin', class is 'AuthMiddleware', and 'admin' is passed to its handle or constructor.
+                // For now, let's assume middleware name directly maps to class or needs specific parsing.
+                // The current example 'auth:admin' implies the middleware itself handles the role.
+                
+                // Simplified middleware name to class mapping
+                $middlewareParts = explode(':', $middlewareName, 2);
+                $baseMiddlewareName = ucfirst($middlewareParts[0]);
+                $middlewareClass = 'App\\Middleware\\' . $baseMiddlewareName . 'Middleware';
+
+
                 if (!class_exists($middlewareClass)) {
-                    throw new \RuntimeException("Middleware {$middlewareClass} not found.");
+                    throw new \RuntimeException("Middleware {$middlewareClass} (derived from {$middlewareName}) not found.");
                 }
                 $middlewareInstance = new $middlewareClass();
-                $request = new Request($_GET, $_POST, $_COOKIE, $_FILES, $_SERVER, file_get_contents('php://input')); // Pass request
                 
                 // The middleware handle method should throw AccessDeniedException or return void
-                $middlewareInstance->handle($request); 
+                // It might also need parameters (e.g., the role 'admin' from 'auth:admin')
+                // For simplicity, the current middleware structure seems to handle this internally or via constructor.
+                $middlewareInstance->handle($request, $middlewareParts[1] ?? null); // Pass request and optional parameter
             }
         }
 
-
-        if (!method_exists($controller, $method)) {
-            throw new \RuntimeException("Method {$method} not found in controller {$controllerClass}.");
+        if (!method_exists($controller, $methodName)) {
+            throw new \RuntimeException("Method {$methodName} not found in controller {$controllerClass}.");
         }
 
-        // Inject Request and Response objects, and route parameters
-        $reflectionMethod = new \ReflectionMethod($controllerClass, $method);
+        // Inject Request, Response objects, and route parameters
+        $reflectionMethod = new \ReflectionMethod($controllerClass, $methodName);
         $methodArgs = [];
         foreach ($reflectionMethod->getParameters() as $param) {
-            $paramName = $param->getName();
+            $paramReflectionName = $param->getName(); // Use $paramReflectionName to avoid conflict with $params array
             $paramType = $param->getType() ? $param->getType()->getName() : null;
 
-            if (isset($params[$paramName])) {
-                $methodArgs[] = $params[$paramName];
+            if (isset($params[$paramReflectionName])) {
+                $methodArgs[] = $params[$paramReflectionName];
             } elseif ($paramType === Request::class) {
-                $methodArgs[] = new Request($_GET, $_POST, $_COOKIE, $_FILES, $_SERVER, file_get_contents('php://input'));
+                $methodArgs[] = $request; // Use the passed Request object
             } elseif ($paramType === Response::class) {
-                $methodArgs[] = new Response();
+                $methodArgs[] = $response; // Use the passed Response object
             } elseif ($param->isDefaultValueAvailable()) {
                 $methodArgs[] = $param->getDefaultValue();
             } else {
-                // This logic might need adjustment if a parameter is not a route param or a core object and has no default.
-                // For simplicity, we assume controller methods either take Request/Response, route params, or have defaults.
-                // error_log("Router: Unresolved parameter '{$paramName}' for {$controllerClass}::{$method}");
-                // throw new \RuntimeException("Cannot resolve parameter '{$paramName}' for {$controllerClass}::{$method}");
+                // This case should ideally not be hit if controller methods are type-hinted correctly
+                // or all non-typed, non-defaulted params are route params.
+                 throw new \RuntimeException("Cannot resolve parameter '{$paramReflectionName}' for {$controllerClass}::{$methodName}. Type: {$paramType}, Is Optional: " . ($param->isOptional() ? 'Yes' : 'No'));
             }
         }
-        $controller->$method(...$methodArgs);
+        $controller->$methodName(...$methodArgs);
     }
 }
