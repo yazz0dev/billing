@@ -27,7 +27,7 @@
   ],
   "env": {
     "APP_ENV": "production",
-    "MONGODB_URI": "@mongodb_uri", 
+    "MONGODB_URI": "@MONGODB_URI", 
     "APP_URL": "https://billing-wheat.vercel.app"
   }
     }
