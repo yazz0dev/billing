@@ -1,6 +1,6 @@
 {
-    "name": "yazz/billing-refactored",
-    "description": "Refactored Billing System",
+    "name": "yazz/billing",
+    "description": "Billing System",
     "require": {
         "mongodb/mongodb": "^1.17",
         "vlucas/phpdotenv": "^5.6"
