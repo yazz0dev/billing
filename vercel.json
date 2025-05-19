@@ -63,7 +63,7 @@
         "NODE_PATH": "node_modules",
         "CACHE_DRIVER": "array",
         "LOG_CHANNEL": "stderr",
-        "SESSION_DRIVER": "cookie", // or 'file' if cookies are an issue, ensure /tmp/sessions is writable
+        "SESSION_DRIVER": "cookie", 
         "DB_CONNECTION": "mongodb",
         "MONGO_DB_URI": "@mongodb_uri",
         "MONGO_DB_DATABASE": "billing_refactored",
