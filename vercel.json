@@ -1,17 +1,31 @@
 {
     "version": 2,
     "framework": "laravel",
+    "public": true,
     "builds": [
         {
             "src": "public/index.php",
-            "use": "@vercel/php"
+            "use": "@vercel/php@0.7.3"
         },
         {
-            "src": "public/**",
+            "src": "public/build/**", // Vite assets
+            "use": "@vercel/static"
+        },
+        {
+            "src": "public/favicon.ico",
             "use": "@vercel/static"
         }
+        // Add other specific static assets if not handled by public/build
     ],
     "routes": [
+        {
+            "src": "/build/(.*)", // Serve Vite assets directly
+            "dest": "/public/build/$1"
+        },
+        {
+            "src": "/favicon.ico",
+            "dest": "/public/favicon.ico"
+        },
         {
             "src": "/(.*)",
             "dest": "public/index.php"
@@ -20,14 +34,34 @@
     "env": {
         "APP_ENV": "production",
         "APP_DEBUG": "false",
-        "APP_URL": "https_YOUR_VERCEL_APP_URL", // Will be set by Vercel
-        "APP_KEY": "@laravel_app_key",         // Secret
+        "APP_URL": "YOUR_VERCEL_APP_URL",  // Vercel sets this automatically
+        "APP_KEY": "@laravel_app_key",
+        "APP_NAME": "Supermarket Billing System",
         "LOG_CHANNEL": "stderr",
-        "SESSION_DRIVER": "cookie", // Or "file" if storage is writable
-        "CACHE_DRIVER": "array",    // Or "file"
+        "SESSION_DRIVER": "cookie",
+        "SESSION_LIFETIME": "120",
+        "CACHE_DRIVER": "array",
         "DB_CONNECTION": "mongodb",
-        "MONGO_DB_URI": "@mongodb_uri",       // Secret
-        "MONGO_DB_DATABASE": "billing_refactored"
+        "MONGO_DB_URI": "@mongodb_uri",
+        "MONGO_DB_DATABASE": "billing_refactored",
+        "BROADCAST_DRIVER": "log",
+        "QUEUE_CONNECTION": "sync",
+        "VITE_PUSHER_APP_KEY": "${PUSHER_APP_KEY}", // If using Pusher for real-time, needed by Vite
+        "VITE_PUSHER_HOST": "${PUSHER_HOST}",
+        "VITE_PUSHER_PORT": "${PUSHER_PORT}",
+        "VITE_PUSHER_SCHEME": "${PUSHER_SCHEME}",
+        "VITE_PUSHER_APP_CLUSTER": "${PUSHER_CLUSTER}"
     },
-    "public": true // Ensure the "public" directory is served
+    "build": {
+        "env": {
+            "PHP_VERSION": "8.2", // Specify PHP version
+            "COMPOSER_VERSION": "2"
+        }
+    },
+    "functions": {
+        "public/index.php": {
+             "memory": 1024, // MB
+             "maxDuration": 20 // seconds
+        }
+    }
 }
