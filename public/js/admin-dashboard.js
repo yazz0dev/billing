@@ -2,30 +2,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const addProductForm = document.getElementById('addProductFormAdmin');
     const viewSalesButton = document.getElementById('viewSalesBtn');
     const salesDataDiv = document.getElementById('salesDataDisplay');
-    // CSRF token will be sourced from the form itself
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     if (addProductForm) {
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
-            const csrfInput = form.querySelector('input[type="hidden"]'); // Assuming the first hidden input is CSRF
-            const csrfTokenName = csrfInput ? csrfInput.name : null;
-            const csrfTokenValue = csrfInput ? csrfInput.value : null;
-
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
             
-            if (csrfTokenName) {
-                delete data[csrfTokenName]; // Remove CSRF from body if sent in header
-            }
-
             try {
-                const response = await fetch(window.BASE_PATH + '/api/products', { // API endpoint for adding products
+                const response = await fetch(`${window.APP_URL}/api/products`, { // Use APP_URL
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
-                        ...(csrfTokenValue && {'X-CSRF-TOKEN': csrfTokenValue}) // Send CSRF if your API setup requires it
+                        ...(csrfToken && {'X-CSRF-TOKEN': csrfToken})
                     },
                     body: JSON.stringify(data)
                 });
@@ -34,9 +26,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (result.success) {
                     if (window.popupNotification) window.popupNotification.success(result.message || "Product added successfully!", "Product Added");
                     form.reset();
-                    // Optionally, refresh a product count or list if displayed on the dashboard
+                    // Optionally, update product count on dashboard or trigger a list refresh
                 } else {
-                    if (window.popupNotification) window.popupNotification.error(result.message || "Failed to add product.", "Error");
+                    let errorMessage = result.message || "Failed to add product.";
+                    if (result.errors) {
+                        errorMessage += " Details: " + Object.values(result.errors).flat().join(' ');
+                    }
+                    if (window.popupNotification) window.popupNotification.error(errorMessage, "Error");
                 }
             } catch (error) {
                 console.error("Add product error:", error);
@@ -49,7 +45,12 @@ document.addEventListener('DOMContentLoaded', function() {
         viewSalesButton.addEventListener('click', async () => {
             salesDataDiv.innerHTML = '<p class="text-center">Loading sales data...</p>';
             try {
-                const response = await fetch(window.BASE_PATH + '/api/sales'); // API endpoint for sales (GET request, typically no CSRF needed)
+                const response = await fetch(`${window.APP_URL}/api/sales`, { // Use APP_URL
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        ...(csrfToken && {'X-CSRF-TOKEN': csrfToken}) // GET requests might not need CSRF, but good practice if middleware checks
+                    }
+                });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const result = await response.json();
                 
@@ -58,11 +59,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (result.success && result.data) {
                     let html = '<ul>';
                     result.data.forEach(sale => {
-                        // Ensure correct access to nested MongoDB date objects if applicable
-                        const dateObject = sale.created_at && sale.created_at.$date ? sale.created_at.$date : sale.created_at;
-                        const saleDate = dateObject ? new Date(dateObject).toLocaleDateString() : 'N/A';
-                        const billId = sale._id && sale._id.$oid ? sale._id.$oid : (sale._id || 'N/A');
-                        const displayBillId = billId !== 'N/A' ? billId.substr(-6) : 'N/A';
+                        const saleDate = sale.created_at ? new Date(sale.created_at).toLocaleDateString() : 'N/A';
+                        const billId = sale._id || sale.id || 'N/A'; // Eloquent might return 'id'
+                        const displayBillId = billId !== 'N/A' ? String(billId).substr(-6) : 'N/A';
 
                         html += `<li>Bill #${displayBillId} - Amount: ₹${parseFloat(sale.total_amount).toFixed(2)} - Date: ${saleDate}</li>`;
                     });

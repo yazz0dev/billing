@@ -4,44 +4,44 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\StaffController;
-use App\Http\Controllers\ProductController as WebProductController; // Renamed to avoid conflict
-// Auth routes are typically handled by Breeze, e.g., Auth\AuthenticatedSessionController
+use App\Http\Controllers\ProductController as WebProductController;
+use App\Http\Controllers\ProfileController; // From Breeze
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Breeze typically adds auth routes: login, register, forgot-password, etc.
-// If you need to customize them, you can publish Breeze views/routes.
+// Auth routes are defined in routes/auth.php by Breeze
+require __DIR__.'/auth.php';
 
-Route::middleware(['auth', 'verified'])->group(function () { // 'verified' if using email verification
-
-    Route::get('/dashboard', function () { // Example generic dashboard
-        if (auth()->user()->hasRole('admin')) {
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        $user = auth()->user();
+        if ($user->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
         }
-        if (auth()->user()->hasRole('staff')) {
+        if ($user->hasRole('staff')) {
             return redirect()->route('staff.pos');
         }
-        return view('dashboard'); // A default dashboard
-    })->name('dashboard');
+        // Default Breeze dashboard view if no specific role redirect
+        return view('dashboard');
+    })->name('dashboard'); // Generic dashboard after login
 
-
+    // Admin Routes
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('products', [WebProductController::class, 'index'])->name('products.index');
-        // Add other admin web routes
+        // Add other admin web routes here
     });
 
+    // Staff Routes (also accessible by admin)
     Route::middleware('role:staff,admin')->prefix('staff')->name('staff.')->group(function () {
         Route::get('pos', [StaffController::class, 'pos'])->name('pos');
         Route::get('bills', [StaffController::class, 'billView'])->name('bills.view');
         Route::get('mobile-scanner', [StaffController::class, 'showScannerPage'])->name('scanner.mobile.page');
-        // Add other staff web routes
+        // Add other staff web routes here
     });
 
-    // Profile routes from Breeze usually here
-    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Profile routes (from Breeze)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
-require __DIR__.'/auth.php'; // Breeze auth routes

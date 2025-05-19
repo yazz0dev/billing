@@ -4,29 +4,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const billListContainer = document.getElementById('billList');
     const billDetailsModal = document.getElementById('billDetailsModal');
     const billDetailsContent = document.getElementById('billDetailsContent');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    let allBillsData = []; // To store all bills fetched initially or passed from PHP
-    let productsLookupData = {}; // To store product ID -> name mapping
+    let allBillsData = [];
+    let productsLookupData = {}; // Product ID -> name
 
-    // Function to initialize data (either from global JS vars set by PHP or by fetching)
     async function initializeBillData() {
-        // Option 1: Data passed via a global JS variable from PHP (more complex to set up now)
-        // if (typeof initialBillsData !== 'undefined' && typeof initialProductsLookup !== 'undefined') {
-        //     allBillsData = initialBillsData;
-        //     productsLookupData = initialProductsLookup;
-        //     renderBills();
-        //     return;
-        // }
-
-        // Option 2: Fetch data on load (simpler for this refactor)
+        if(!billListContainer) return; // Element not on page
         try {
             const [billsResponse, productsResponse] = await Promise.all([
-                fetch(window.BASE_PATH + '/api/bills'),      // Assuming your BillController::apiGetBills exists
-                fetch(window.BASE_PATH + '/api/products')  // Assuming your ProductController::apiGetProducts exists
+                fetch(`${window.APP_URL}/api/bills`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...(csrfToken && {'X-CSRF-TOKEN': csrfToken}) } }),
+                fetch(`${window.APP_URL}/api/products`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...(csrfToken && {'X-CSRF-TOKEN': csrfToken}) } })
             ]);
 
             if (!billsResponse.ok || !productsResponse.ok) {
-                throw new Error('Failed to load initial bill data.');
+                throw new Error('Failed to load initial bill or product data.');
             }
 
             const billsResult = await billsResponse.json();
@@ -37,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (productsResult.success && Array.isArray(productsResult.data)) {
                 productsResult.data.forEach(p => {
-                    productsLookupData[p._id.$oid || p._id] = p.name;
+                    productsLookupData[p.id || p._id] = p.name;
                 });
             }
             renderBills();
@@ -52,43 +44,33 @@ document.addEventListener('DOMContentLoaded', function() {
         return productsLookupData[productId] || 'Unknown Product';
     }
     
-    function formatDateFromMongo(mongoDate) {
-        if (!mongoDate) return 'N/A';
-        try {
-            // Handle both { $date: { $numberLong: "..." } } and { $date: "YYYY-MM-DDTHH:mm:ss.sssZ" }
-            const timestamp = mongoDate.$numberLong ? parseInt(mongoDate.$numberLong) : new Date(mongoDate).getTime();
-            return new Date(timestamp).toLocaleDateString();
-        } catch (e) {
-            return 'Invalid Date';
-        }
+    function formatDate(dateString) { // Laravel dates are usually standard ISO
+        if (!dateString) return 'N/A';
+        try { return new Date(dateString).toLocaleDateString(); } 
+        catch (e) { return 'Invalid Date'; }
     }
-    function formatTimeFromMongo(mongoDate) {
-        if (!mongoDate) return 'N/A';
-         try {
-            const timestamp = mongoDate.$numberLong ? parseInt(mongoDate.$numberLong) : new Date(mongoDate).getTime();
-            return new Date(timestamp).toLocaleTimeString();
-        } catch (e) {
-            return 'Invalid Time';
-        }
+    function formatTime(dateString) {
+        if (!dateString) return 'N/A';
+        try { return new Date(dateString).toLocaleTimeString(); }
+        catch (e) { return 'Invalid Time'; }
     }
-
 
     function renderBills(searchTerm = '') {
         if (!billListContainer) return;
-        if (allBillsData.length === 0) {
+        if (allBillsData.length === 0 && searchTerm === '') { // Only show "no bills" if no search and no data
             billListContainer.innerHTML = '<p class="text-center text-light">No bills found.</p>';
             return;
         }
 
         const lowerSearchTerm = searchTerm.toLowerCase();
         const filteredBills = allBillsData.filter(bill => {
-            const billId = bill._id.$oid || bill._id || '';
+            const billId = String(bill.id || bill._id || '');
             if (billId.toLowerCase().includes(lowerSearchTerm)) return true;
+            if (bill.username && bill.username.toLowerCase().includes(lowerSearchTerm)) return true;
 
-            // Search in product names within bill items
             if (bill.items && Array.isArray(bill.items)) {
                 for (const item of bill.items) {
-                    const productName = item.product_name || getProductName(item.product_id?.$oid || item.product_id);
+                    const productName = item.product_name || getProductName(item.product_id);
                     if (productName.toLowerCase().includes(lowerSearchTerm)) return true;
                 }
             }
@@ -101,21 +83,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         billListContainer.innerHTML = filteredBills.map(bill => {
-            const billId = bill._id.$oid || bill._id;
+            const billId = String(bill.id || bill._id);
             const displayBillId = billId ? billId.substr(-6) : 'N/A';
-            const date = formatDateFromMongo(bill.created_at?.$date || bill.created_at);
+            const date = formatDate(bill.created_at);
             const totalAmount = bill.total_amount !== undefined ? parseFloat(bill.total_amount).toFixed(2) : '0.00';
-
             let summaryText = `Contains ${bill.items?.length || 0} item(s).`;
-            if (bill.items && bill.items[0] && bill.items[0].product_name) {
-                summaryText = `Product: ${bill.items[0].product_name}${bill.items.length > 1 ? ' & more' : ''}`;
+            if (bill.items && bill.items[0] && (bill.items[0].product_name || getProductName(bill.items[0].product_id))) {
+                summaryText = `Product: ${bill.items[0].product_name || getProductName(bill.items[0].product_id)}${bill.items.length > 1 ? ' & more' : ''}`;
             }
-
 
             return `
                 <div class="card-base bill-card-item" data-bill-id="${billId}">
                     <h3 class="card-title">Bill #${displayBillId}</h3>
                     <p class="card-meta">Date: ${date}</p>
+                    <p class="card-meta">Billed by: ${bill.username || 'N/A'}</p>
                     <p>${summaryText}</p>
                     <p>Amount: ₹${totalAmount}</p>
                     <div class="card-actions">
@@ -126,38 +107,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }).join('');
     }
 
-    window.viewBillDetails = function(billId) { // Make it global for onclick
-        const bill = allBillsData.find(b => (b._id.$oid || b._id) === billId);
-        if (!bill || !billDetailsContent || !billDetailsModal) return;
-
-        let itemsHtml = '<ul style="list-style:none; padding-left:0;">';
-        if (bill.items && Array.isArray(bill.items)) {
-            bill.items.forEach(item => {
-                const productName = item.product_name || getProductName(item.product_id?.$oid || item.product_id);
-                itemsHtml += `<li>${item.quantity} x ${productName} @ ₹${parseFloat(item.price_per_unit).toFixed(2)} = ₹${parseFloat(item.item_total).toFixed(2)}</li>`;
-            });
-        }
-        itemsHtml += '</ul>';
+    window.viewBillDetails = async function(billId) {
+        if (!billDetailsContent || !billDetailsModal) return;
         
-        const date = formatDateFromMongo(bill.created_at?.$date || bill.created_at);
-        const time = formatTimeFromMongo(bill.created_at?.$date || bill.created_at);
+        // Fetch single bill for details to ensure up-to-date info and reduce initial load
+        try {
+            const response = await fetch(`${window.APP_URL}/api/bills/${billId}`, {
+                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...(csrfToken && {'X-CSRF-TOKEN': csrfToken}) }
+            });
+            if (!response.ok) {
+                if (window.popupNotification) window.popupNotification.error("Bill not found or error fetching details.");
+                return;
+            }
+            const result = await response.json();
+            const bill = result.data;
 
-        billDetailsContent.innerHTML = `
-            <h2>Bill Details #${billId.substr(-6)}</h2>
-            <p><b>Full Bill ID:</b> ${billId}</p>
-            <p><b>Date:</b> ${date}</p>
-            <p><b>Time:</b> ${time}</p>
-            <p><b>Billed by:</b> ${bill.username || 'N/A'}</p>
-            <h4 style="margin-top:1rem; margin-bottom:0.5rem;">Items:</h4>
-            ${itemsHtml}
-            <hr style="margin:1rem 0;">
-            <p style="font-size:1.1em;"><b>Total Amount:</b> ₹${parseFloat(bill.total_amount).toFixed(2)}</p>
-            <p><b>Status:</b> <span style="color:var(--success);">Completed</span></p>
-        `;
-        billDetailsModal.style.display = 'flex';
+            if (!bill) return;
+
+            let itemsHtml = '<ul style="list-style:none; padding-left:0;">';
+            if (bill.items && Array.isArray(bill.items)) {
+                bill.items.forEach(item => {
+                    const productName = item.product_name || getProductName(item.product_id);
+                    itemsHtml += `<li>${item.quantity} x ${productName} @ ₹${parseFloat(item.price_per_unit).toFixed(2)} = ₹${parseFloat(item.item_total).toFixed(2)}</li>`;
+                });
+            }
+            itemsHtml += '</ul>';
+            
+            const date = formatDate(bill.created_at);
+            const time = formatTime(bill.created_at);
+
+            billDetailsContent.innerHTML = `
+                <h2>Bill Details #${String(bill.id || bill._id).substr(-6)}</h2>
+                <p><b>Full Bill ID:</b> ${bill.id || bill._id}</p>
+                <p><b>Date:</b> ${date}</p>
+                <p><b>Time:</b> ${time}</p>
+                <p><b>Billed by:</b> ${bill.username || 'N/A'}</p>
+                <h4 style="margin-top:1rem; margin-bottom:0.5rem;">Items:</h4>
+                ${itemsHtml}
+                <hr style="margin:1rem 0;">
+                <p style="font-size:1.1em;"><b>Total Amount:</b> ₹${parseFloat(bill.total_amount).toFixed(2)}</p>
+                <p><b>Status:</b> <span style="color:var(--success);">Completed</span></p>
+            `;
+            billDetailsModal.style.display = 'flex';
+        } catch (error) {
+            console.error("Error fetching bill details:", error);
+            if (window.popupNotification) window.popupNotification.error("Could not load bill details.");
+        }
     };
 
-    window.closeModal = function() { // Make it global
+    window.closeModal = function() {
         if (billDetailsModal) billDetailsModal.style.display = 'none';
     };
 
@@ -166,7 +164,5 @@ document.addEventListener('DOMContentLoaded', function() {
             renderBills(this.value.trim());
         });
     }
-
-    // Initial Load
     initializeBillData();
 });

@@ -10,7 +10,12 @@ class Product extends Model
     protected $collection = 'products';
 
     protected $fillable = [
-        'name', 'price', 'stock', 'low_stock_threshold', 'barcode' // Example fields
+        'name',
+        'price',
+        'stock',
+        'low_stock_threshold',
+        'barcode',
+        // Add other fields from your old system if necessary
     ];
 
     protected $casts = [

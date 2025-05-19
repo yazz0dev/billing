@@ -1,100 +1,55 @@
-<?php // ./index.php
-// This is the main entry point for the application.
-// Ensure your web server is configured to use this file as the front controller.
+<?php
 
-declare(strict_types=1);
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Http\Request;
 
-// Define PROJECT_ROOT as the directory containing 'src', 'config', 'vendor', etc.
-// If public/index.php is the entry point, PROJECT_ROOT is one level up.
-define('PROJECT_ROOT', dirname(__DIR__));
+define('LARAVEL_START', microtime(true));
 
-// Include composer autoloader
-if (file_exists(PROJECT_ROOT . '/vendor/autoload.php')) {
-    require PROJECT_ROOT . '/vendor/autoload.php';
-} else {
-    http_response_code(500);
-    echo '<h1>Server Error</h1><p>Dependencies not installed. Please run <code>composer install</code>.</p>';
-    exit;
+/*
+|--------------------------------------------------------------------------
+| Check If The Application Is Under Maintenance
+|--------------------------------------------------------------------------
+|
+| If the application is in maintenance / demo mode via the "down" command
+| we will load this file so that any pre-rendered content can be shown
+| instead of starting the framework, which could cause an exception.
+|
+*/
+
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
 }
 
-// Load environment variables
-if (file_exists(PROJECT_ROOT . '/.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable(PROJECT_ROOT);
-    $dotenv->safeLoad(); // Won't error if .env is missing
-}
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| this application. We just need to utilize it! We'll simply require it
+| into the script here so we don't need to manually load our classes.
+|
+*/
 
-// Load application configuration
-$appConfig = require PROJECT_ROOT . '/config/app.php';
+require __DIR__.'/../vendor/autoload.php';
 
-// Set error display based on environment
-if (($appConfig['env'] ?? 'production') === 'development' || ($appConfig['debug'] ?? false)) {
-    ini_set('display_errors', '1');
-    error_reporting(E_ALL);
-} else {
-    ini_set('display_errors', '0');
-    error_reporting(0);
-}
+/*
+|--------------------------------------------------------------------------
+| Run The Application
+|--------------------------------------------------------------------------
+|
+| Once we have the application, we can handle the incoming request using
+| the application's HTTP kernel. Then, we will send the response back
+| to this client's browser, allowing them to enjoy our application.
+|
+*/
 
-// Initialize session
-if (session_status() === PHP_SESSION_NONE) {
-    session_name($appConfig['session_name'] ?? 'APP_SESSION');
-    session_start([
-        'cookie_httponly' => true,
-        'cookie_secure' => ($appConfig['env'] ?? 'production') === 'production',
-        'cookie_samesite' => 'Lax',
-    ]);
-}
+$app = require_once __DIR__.'/../bootstrap/app.php';
 
-// Define the base path for the application
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? ''; // e.g., /index.php or /billing_app/index.php
-$baseDir = dirname($scriptName); // e.g., / or /billing_app
-if ($baseDir === '/' || $baseDir === '\\') {
-    $baseDir = ''; // If script is in webroot, baseDir is empty
-}
-define('BASE_PATH', $baseDir); // Will be '' or '/billing_app'
+$kernel = $app->make(Kernel::class);
 
+$response = $kernel->handle(
+    $request = Request::capture()
+)->send();
 
-// --- Attempt database connection early ---
-// This needs View and Database classes.
-use App\Core\Database;
-use App\Core\View;
-
-try {
-    Database::connect();
-} catch (\MongoDB\Driver\Exception\Exception $e) { // More specific MongoDB exception
-    http_response_code(503); // Service Unavailable
-    error_log("Database Connection Error from public/index.php: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    // Ensure View can be instantiated if PROJECT_ROOT is correctly set
-    $view = new View(PROJECT_ROOT . '/templates');
-    $errorMessage = ($appConfig['debug'] ?? false) ? nl2br(htmlspecialchars("Database Connection Failed: " . $e->getMessage() . "\n\nTrace:\n" . $e->getTraceAsString())) : 'Database service is currently unavailable. Please try again later.';
-    // Ensure error templates exist and paths are correct
-    echo $view->render('error/500.php', ['pageTitle' => 'Database Error', 'message' => $errorMessage], 'layouts/minimal.php');
-    exit;
-} catch (\Throwable $e) { // Catch any other throwable during early DB connection
-    http_response_code(500);
-    error_log("Generic Early Setup Error from public/index.php: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    $view = new View(PROJECT_ROOT . '/templates');
-    $errorMessage = ($appConfig['debug'] ?? false) ? nl2br(htmlspecialchars("Initialization Error: " . $e->getMessage() . "\n\nTrace:\n" . $e->getTraceAsString())) : 'An unexpected error occurred during application startup.';
-    echo $view->render('error/500.php', ['pageTitle' => 'Initialization Error', 'message' => $errorMessage], 'layouts/minimal.php');
-    exit;
-}
-
-
-// Include the router (api/index.php)
-// It will take over from here and handle dispatching
-$routerFile = PROJECT_ROOT . '/api/index.php';
-if (!file_exists($routerFile)) {
-    http_response_code(500);
-    // Use View for error message if available, otherwise plain text
-    if (class_exists(View::class)) {
-        $view = new View(PROJECT_ROOT . '/templates');
-        echo $view->render('error/500.php', ['pageTitle' => 'Server Configuration Error', 'message' => 'Application router not found.'], 'layouts/minimal.php');
-    } else {
-        echo '<h1>Server Configuration Error</h1><p>Application router not found.</p>';
-    }
-    exit;
-}
-
-require $routerFile;
-
-// The script should exit within the dispatched controller action or router exception handler
+$kernel->terminate($request, $response);

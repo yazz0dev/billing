@@ -3,41 +3,42 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ProductController as ApiProductController;
-use App\Http\Controllers\Api\BillController;
-use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\MobileScannerController;
-use App\Http\Controllers\Api\SalesController;
+use App\Http\Controllers\Api\BillController as ApiBillController;
+use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
+use App\Http\Controllers\Api\MobileScannerController as ApiMobileScannerController;
+use App\Http\Controllers\Api\SalesController as ApiSalesController;
 
-// Public API routes (if any)
-// Route::post('/some-public-endpoint', [SomeController::class, 'method']);
-
-Route::middleware(['auth:sanctum'])->group(function () { // Use 'auth:sanctum' for API token authentication
-
-    Route::middleware('role:admin')->group(function() {
-        Route::apiResource('products', ApiProductController::class); // Manages product CRUD for admin
-        Route::get('sales', [SalesController::class, 'index']); // GET /api/sales
-    });
-
-    Route::prefix('bills')->middleware('role:staff,admin')->group(function () {
-        Route::post('generate', [BillController::class, 'generateBill']); // POST /api/bills/generate
-        Route::get('/', [BillController::class, 'getBills']);          // GET /api/bills
-    });
-
-    Route::prefix('notifications')->group(function () {
-        Route::post('fetch', [NotificationController::class, 'fetchNotifications']);       // POST /api/notifications/fetch
-        Route::post('mark-seen', [NotificationController::class, 'markSeen']); // POST /api/notifications/mark-seen
-    });
-
-    Route::prefix('scanner')->middleware('role:staff,admin')->group(function() {
-        Route::post('activate-pos', [MobileScannerController::class, 'activateDesktopScanning']);
-        Route::post('deactivate-pos', [MobileScannerController::class, 'deactivateDesktopScanning']);
-        Route::get('check-pos-activation', [MobileScannerController::class, 'checkDesktopActivation']);
-        Route::post('activate-mobile', [MobileScannerController::class, 'activateMobileSession']);
-        Route::post('submit-scan', [MobileScannerController::class, 'submitScannedProduct']);
-        Route::get('items', [MobileScannerController::class, 'getScannedItemsForDesktop']);
-    });
-
+Route::middleware(['auth:sanctum'])->group(function () {
+    // User route (standard for Sanctum)
     Route::get('/user', function (Request $request) {
         return $request->user();
+    });
+
+    // Admin specific API routes
+    Route::middleware('role:admin')->group(function() {
+        Route::apiResource('products', ApiProductController::class);
+        Route::get('sales', [ApiSalesController::class, 'index']);
+    });
+
+    // Staff & Admin API routes
+    Route::middleware('role:staff,admin')->group(function () {
+        Route::post('bills/generate', [ApiBillController::class, 'generateBill']);
+        Route::get('bills', [ApiBillController::class, 'getBills']);
+        Route::get('bills/{id}', [ApiBillController::class, 'show']); // Added show route
+
+        Route::prefix('scanner')->group(function() {
+            Route::post('activate-pos', [ApiMobileScannerController::class, 'activateDesktopScanning']);
+            Route::post('deactivate-pos', [ApiMobileScannerController::class, 'deactivateDesktopScanning']);
+            Route::get('check-pos-activation', [ApiMobileScannerController::class, 'checkDesktopActivation']);
+            Route::post('activate-mobile', [ApiMobileScannerController::class, 'activateMobileSession']);
+            Route::post('submit-scan', [ApiMobileScannerController::class, 'submitScannedProduct']);
+            Route::get('items', [ApiMobileScannerController::class, 'getScannedItemsForDesktop']);
+        });
+    });
+    
+    // Authenticated user API routes (any role)
+    Route::prefix('notifications')->group(function () {
+        Route::post('fetch', [ApiNotificationController::class, 'fetchNotifications']);
+        Route::post('mark-seen', [ApiNotificationController::class, 'markSeen']);
     });
 });
