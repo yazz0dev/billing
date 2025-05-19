@@ -3,7 +3,7 @@
     "builds": [
         {
             "src": "public/index.php",
-            "use": "@vercel/php@0.7.3", 
+            "use": "@vercel/php@0.7.3",
             "config": { "memory": 1024, "maxDuration": 30 }
         },
         {
@@ -51,7 +51,8 @@
     "env": {
         "APP_ENV": "production",
         "APP_DEBUG": "false",
-        "APP_URL": "billing-ashen.vercel.app",
+        "APP_URL": "https://billing-ashen.vercel.app",
+        "APP_KEY": "@laravel_app_key",
         "APP_NAME": "Supermarket Billing System",
         "APP_CONFIG_CACHE": "/tmp/config.php",
         "APP_EVENTS_CACHE": "/tmp/events.php",
@@ -59,22 +60,25 @@
         "APP_ROUTES_CACHE": "/tmp/routes.php",
         "APP_SERVICES_CACHE": "/tmp/services.php",
         "VIEW_COMPILED_PATH": "/tmp/views",
+        "CACHE_STORE": "file",
+        "CACHE_PATH": "/tmp/cache/data",
         "SSR_TEMP_PATH": "/tmp/ssr",
         "NODE_PATH": "node_modules",
-        "CACHE_DRIVER": "array",
         "LOG_CHANNEL": "stderr",
         "SESSION_DRIVER": "cookie",
+        "SESSION_SECURE_COOKIE": "true",
         "DB_CONNECTION": "mongodb",
-        "MONGO_DB_URI": "mongodb+srv://yaseen:3GWpYAbQuZP06S6N@billcluster.rhevn0n.mongodb.net/?retryWrites=true&w=majority&appName=BillCluster",
+        "MONGO_DB_URI": "@mongodb_uri_secret",
         "MONGO_DB_DATABASE": "billing_refactored",
-        "SANCTUM_STATEFUL_DOMAINS": "YOUR_VERCEL_APP_URL_WITHOUT_HTTPS",
-        "SESSION_DOMAIN": "YOUR_VERCEL_APP_URL_WITHOUT_HTTPS_AND_WWW_PREFIX"
+        "SANCTUM_STATEFUL_DOMAINS": "billing-ashen.vercel.app",
+        "SESSION_DOMAIN": ".vercel.app"
     },
     "build": {
         "env": {
             "PHP_VERSION": "8.2",
             "COMPOSER_VERSION": "2",
-            "NPM_FLAGS": "--omit=dev --production"
+            "NPM_FLAGS": "--omit=dev --production",
+            "SKIP_COLLECT_STATIC": "1"
         }
     }
 }
