@@ -1,34 +1,33 @@
 {
-  "version": 2,
-  "functions": {
-    "api/index.php": {
-      "runtime": "vercel-php@0.7.3"
-    }
-  },
-  "routes": [
-    {
-      "src": "/css/(.*)",
-      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
-      "dest": "/public/css/$1"
+    "version": 2,
+    "framework": "laravel",
+    "builds": [
+        {
+            "src": "public/index.php",
+            "use": "@vercel/php"
+        },
+        {
+            "src": "public/**",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "public/index.php"
+        }
+    ],
+    "env": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false",
+        "APP_URL": "https_YOUR_VERCEL_APP_URL", // Will be set by Vercel
+        "APP_KEY": "@laravel_app_key",         // Secret
+        "LOG_CHANNEL": "stderr",
+        "SESSION_DRIVER": "cookie", // Or "file" if storage is writable
+        "CACHE_DRIVER": "array",    // Or "file"
+        "DB_CONNECTION": "mongodb",
+        "MONGO_DB_URI": "@mongodb_uri",       // Secret
+        "MONGO_DB_DATABASE": "billing_refactored"
     },
-    {
-      "src": "/js/(.*)",
-      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
-      "dest": "/public/js/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/public/favicon.ico"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.php"
-    }
-  ],
-  "env": {
-    "APP_ENV": "production",
-    "MONGODB_URI": "mongodb+srv://yaseen:3GWpYAbQuZP06S6N@billcluster.rhevn0n.mongodb.net/?retryWrites=true&w=majority&appName=BillCluster", 
-    "APP_URL": "https://billing-ashen.vercel.app",
-    "APP_BASE_PATH": ""
-  }
+    "public": true // Ensure the "public" directory is served
 }
