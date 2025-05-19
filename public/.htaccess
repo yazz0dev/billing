@@ -1,25 +1,21 @@
-# ./public/.htaccess
 <IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
     RewriteEngine On
 
-    # If your app is directly under the domain (e.g. localhost/, yourdomain.com/)
-    # And DocumentRoot is /path/to/project/public
-    RewriteBase /
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # If your app is in a subdirectory (e.g. localhost/mybillingapp/)
-    # AND DocumentRoot is /path/to/project/public
-    # THEN RewriteBase should be /mybillingapp/
-    # Example: RewriteBase /mybillingapp/
-    # (Adjust this if necessary for your local setup. Vercel ignores RewriteBase)
-
-    # Make sure your Apache DocumentRoot is set to this /public directory.
-    # All requests not for existing files or directories will be rewritten to ../index.php (project root).
-    RewriteCond %{REQUEST_FILENAME} !-f
+    # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ ../index.php [L,QSA] # Simpler rule first. Bramus Router can parse REQUEST_URI.
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
 
-    # If the above doesn't work well with Bramus Router and subdirectories,
-    # you might try passing the path explicitly:
-    # RewriteRule ^(.*)$ ../index.php/$1 [L,QSA]
-    # But usually, modern routers prefer to look at $_SERVER['REQUEST_URI'] themselves.
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
 </IfModule>

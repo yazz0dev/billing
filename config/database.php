@@ -1,17 +1,24 @@
-<?php // config/database.php
+<?php
 
 return [
-    'mongodb' => [
-        'uri' => $_ENV['MONGODB_URI'] ?? (defined('MONGODB_URI_CONFIG') ? MONGODB_URI_CONFIG : 'mongodb://localhost:27017'),
-        'database_name' => 'billing_refactored', // Choose your DB name
-        'options' => [], // MongoDB URI options
-        'driver_options' => [ // MongoDB driver options
-             'serverSelectionTimeoutMS' => 5000,
-             'connectTimeoutMS' => 10000,
-             // Add SSL context options if needed, especially if php.ini settings are not picked up
-             // 'tls' => true, // This is usually implied by mongodb+srv
-             // 'tlsCAFile' => 'C:\path\to\your\cacert.pem', // Example: uncomment and set path if needed
-             // 'tlsAllowInvalidCertificates' => false, // Should always be false in production
+    'default' => env('DB_CONNECTION', 'mongodb'),
+
+    'connections' => [
+        // ... (sqlite, mysql, etc. can be kept or removed) ...
+
+        'mongodb' => [
+            'driver'   => 'mongodb',
+            'dsn'      => env('MONGO_DB_URI'), // Example: mongodb://username:password@host:port/auth_db?options
+            'database' => env('MONGO_DB_DATABASE', 'billing_refactored'),
+            // 'options' => [
+            // 'replicaSet' => env('MONGO_REPLICA_SET_NAME'), // if using replica set
+            // 'serverSelectionTimeoutMS' => env('MONGO_SERVER_SELECTION_TIMEOUT_MS', 5000),
+            // 'connectTimeoutMS' => env('MONGO_CONNECT_TIMEOUT_MS', 10000),
+            // ],
         ],
     ],
+
+    'migrations' => 'migrations', // Standard Laravel, though less used with MongoDB typically
+
+    // ... (Redis config if used) ...
 ];
