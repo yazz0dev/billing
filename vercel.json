@@ -3,7 +3,8 @@
     "builds": [
         {
             "src": "public/index.php",
-            "use": "@vercel/php@0.7.3"
+            "use": "@vercel/php@0.7.3",
+            "config": { "memory": 1024, "maxDuration": 30 }
         },
         {
             "src": "public/build/**",
@@ -63,7 +64,7 @@
         "NODE_PATH": "node_modules",
         "CACHE_DRIVER": "array",
         "LOG_CHANNEL": "stderr",
-        "SESSION_DRIVER": "cookie", 
+        "SESSION_DRIVER": "cookie",
         "DB_CONNECTION": "mongodb",
         "MONGO_DB_URI": "@mongodb_uri",
         "MONGO_DB_DATABASE": "billing_refactored",
@@ -75,12 +76,6 @@
             "PHP_VERSION": "8.2",
             "COMPOSER_VERSION": "2",
             "NPM_FLAGS": "--omit=dev --production"
-        }
-    },
-    "functions": {
-        "public/index.php": {
-             "memory": 1024,
-             "maxDuration": 30
         }
     },
     "redirects": [
