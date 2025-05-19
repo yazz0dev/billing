@@ -1,3 +1,6 @@
-/vendor/
-.env.local
-.env
+/vendor
+/.git
+/.vscode
+/.idea
+/node_modules
+*.DS_Store
